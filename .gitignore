@@ -16,9 +16,8 @@ venv/
 # Model artifacts
 *.pkl
 *.joblib
-*.sav
 *.model
-
+*.sav
 
 # Logs
 *.log
