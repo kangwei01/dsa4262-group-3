@@ -1,0 +1,79 @@
+{
+  "name": "StudentCheckIn",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "description": "Reference to student profile"
+    },
+    "week": {
+      "type": "string",
+      "description": "Week identifier"
+    },
+    "q_overwhelmed": {
+      "type": "number",
+      "description": "How often felt overwhelmed (1-5)"
+    },
+    "q_sleep": {
+      "type": "number",
+      "description": "Sleep quality (1-5)"
+    },
+    "q_school_pressure": {
+      "type": "number",
+      "description": "School pressure level (1-5)"
+    },
+    "q_mood": {
+      "type": "number",
+      "description": "Overall mood (1-5)"
+    },
+    "q_social": {
+      "type": "number",
+      "description": "Social connection (1-5)"
+    },
+    "q_energy": {
+      "type": "number",
+      "description": "Energy levels (1-5)"
+    },
+    "q_focus": {
+      "type": "number",
+      "description": "Ability to focus (1-5)"
+    },
+    "responses": {
+      "type": "object",
+      "description": "Full weekly RF question responses keyed by feature id"
+    },
+    "baseline_responses": {
+      "type": "object",
+      "description": "Snapshot of one-time profile inputs used during scoring"
+    },
+    "top_factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Top contributing factors derived from this check-in"
+    },
+    "free_text": {
+      "type": "string",
+      "description": "Optional free text response"
+    },
+    "computed_score": {
+      "type": "number",
+      "description": "Computed risk score from responses"
+    }
+  },
+  "required": [
+    "student_id"
+  ]
+}

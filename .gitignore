@@ -37,3 +37,12 @@ Thumbs.db
 *.tmp
 *.temp
 *.swp
+
+# Local tooling / workspace artifacts
+.claude/
+*.zip
+
+# Frontend build artifacts
+wellbeing-platform/node_modules/
+wellbeing-platform/dist/
+wellbeing-platform/.vite/

@@ -1,0 +1,126 @@
+{
+  "name": "StudentProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Student's first name (anonymized)"
+    },
+    "student_identifier": {
+      "type": "string",
+      "description": "Student login identifier, such as school email or student ID"
+    },
+    "age": {
+      "type": "number",
+      "description": "Student age (13-16)"
+    },
+    "baseline_responses": {
+      "type": "object",
+      "description": "One-time onboarding responses used as profile context"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the one-time baseline questions have been completed"
+    },
+    "onboarding_completed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the one-time onboarding set was first completed"
+    },
+    "grade": {
+      "type": "string",
+      "description": "Student's grade/year"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "low",
+      "description": "Current computed risk level"
+    },
+    "risk_score": {
+      "type": "number",
+      "description": "Numeric risk score 0-100"
+    },
+    "trend": {
+      "type": "string",
+      "enum": [
+        "improving",
+        "stable",
+        "worsening"
+      ],
+      "default": "stable",
+      "description": "Trend direction"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Confidence in risk assessment 0-100"
+    },
+    "key_factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Contributing factors"
+    },
+    "action_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "monitoring",
+        "check_in_scheduled",
+        "check_in_completed",
+        "referred"
+      ],
+      "default": "none"
+    },
+    "assigned_teacher": {
+      "type": "string",
+      "description": "Teacher email"
+    },
+    "weekly_scores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "week": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "sleep": {
+            "type": "number"
+          },
+          "stress": {
+            "type": "number"
+          },
+          "mood": {
+            "type": "number"
+          },
+          "social": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Historical weekly risk scores"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
