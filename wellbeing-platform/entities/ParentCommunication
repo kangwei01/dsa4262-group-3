@@ -1,0 +1,54 @@
+{
+  "name": "ParentCommunication",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "description": "Reference to the student profile"
+    },
+    "student_name": {
+      "type": "string",
+      "description": "Student display name at the point of drafting"
+    },
+    "teacher_email": {
+      "type": "string",
+      "description": "Teacher who prepared the message"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "ready_to_send",
+        "sent"
+      ],
+      "default": "draft",
+      "description": "Current communication status"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Message subject"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message body"
+    },
+    "linked_case_id": {
+      "type": "string",
+      "description": "Optional counsellor-case reference"
+    },
+    "scheduled_for": {
+      "type": "string",
+      "description": "Optional scheduled send time"
+    },
+    "sent_at": {
+      "type": "string",
+      "description": "ISO timestamp when the message was marked sent"
+    }
+  },
+  "required": [
+    "student_id",
+    "teacher_email",
+    "status",
+    "message"
+  ]
+}

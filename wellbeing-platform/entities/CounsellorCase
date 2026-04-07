@@ -1,0 +1,49 @@
+{
+  "name": "CounsellorCase",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "description": "Reference to the student profile"
+    },
+    "student_name": {
+      "type": "string",
+      "description": "Student display name at the point of escalation"
+    },
+    "teacher_email": {
+      "type": "string",
+      "description": "Teacher who escalated the case"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "acknowledged",
+        "closed"
+      ],
+      "default": "pending_review",
+      "description": "Current counsellor-case status"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short escalation summary"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Full student support file sent to counsellor"
+    },
+    "parent_message": {
+      "type": "string",
+      "description": "Optional parent communication included with the escalation"
+    },
+    "created_by_role": {
+      "type": "string",
+      "description": "Role that created the case"
+    }
+  },
+  "required": [
+    "student_id",
+    "teacher_email",
+    "status"
+  ]
+}

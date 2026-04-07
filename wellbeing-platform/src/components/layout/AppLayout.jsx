@@ -1,10 +1,14 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Heart, LayoutDashboard, Users, ShieldCheck, BarChart3, BookOpen, ListChecks } from 'lucide-react';
+import { Heart, LayoutDashboard, Users, ShieldCheck, BarChart3, BookOpen, ListChecks, CalendarClock, ClipboardList, Mail, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 const teacherNav = [
   { label: 'Dashboard', path: '/teacher', icon: LayoutDashboard },
   { label: 'Students', path: '/teacher/students', icon: Users },
+  { label: 'Reminders', path: '/teacher/reminders', icon: CalendarClock },
+  { label: 'Counsellor', path: '/teacher/counsellor', icon: ClipboardList },
+  { label: 'Parents', path: '/teacher/communications', icon: Mail },
   { label: 'Questions', path: '/teacher/questions', icon: ListChecks },
   { label: 'System Logic', path: '/system-logic', icon: BarChart3 },
 ];
@@ -19,6 +23,7 @@ export default function AppLayout() {
   const location = useLocation();
   const isTeacher = location.pathname.startsWith('/teacher');
   const nav = isTeacher ? teacherNav : studentNav;
+  const { teacher, logout, isTeacherAuthenticated } = useTeacherAccess();
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,6 +62,12 @@ export default function AppLayout() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {isTeacher && isTeacherAuthenticated && teacher && (
+              <div className="hidden lg:flex items-center gap-2 mr-2 rounded-full bg-secondary px-3 py-1.5">
+                <span className="text-xs font-medium text-foreground">{teacher.name}</span>
+                <span className="text-[10px] text-muted-foreground">{teacher.teacher_identifier}</span>
+              </div>
+            )}
             <Link
               to="/"
               className={cn(
@@ -75,6 +86,15 @@ export default function AppLayout() {
             >
               Teacher
             </Link>
+            {isTeacher && isTeacherAuthenticated && (
+              <button
+                onClick={logout}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium bg-secondary text-secondary-foreground hover:bg-muted transition-all"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </header>

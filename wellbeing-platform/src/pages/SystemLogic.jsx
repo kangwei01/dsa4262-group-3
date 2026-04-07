@@ -86,12 +86,12 @@ export default function SystemLogic() {
             </div>
             <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
               <p className="text-sm text-foreground leading-relaxed">
-                Teachers land on a low-load dashboard, drill into a student, see the main concern and recent trend, then choose a private check-in, monitoring follow-up, parent engagement, or counsellor escalation.
+                Teachers sign into a protected workspace, land on a low-load dashboard, drill into a student, see the main concern and recent trend, then choose a private check-in, monitoring follow-up, parent engagement, or counsellor escalation.
               </p>
             </div>
             <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
               <p className="text-sm text-foreground leading-relaxed">
-                Every teacher action is logged, and follow-up reminders can be recorded directly in the system.
+                Every teacher action is logged, follow-up reminders feed a queue, parent communication drafts go to an outbox, and counsellor escalations create a structured handoff file.
               </p>
             </div>
           </CardContent>
@@ -138,9 +138,9 @@ export default function SystemLogic() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
               { icon: MessageSquare, title: 'Support cards', desc: 'Students get concise post-submission insight cards.' },
-              { icon: CalendarClock, title: 'Reminders', desc: 'Teacher follow-ups can be scheduled and logged.' },
-              { icon: UserCheck, title: 'Escalation package', desc: 'Counsellor escalation includes signals, trends, and notes.' },
-              { icon: Shield, title: 'Parent communication', desc: 'Neutral editable templates support non-alarmist outreach.' },
+              { icon: CalendarClock, title: 'Reminders', desc: 'Teacher follow-ups can be scheduled, queued, and reviewed from one place.' },
+              { icon: UserCheck, title: 'Escalation package', desc: 'Counsellor escalation includes the student summary, check-ins, and teacher action history.' },
+              { icon: Shield, title: 'Parent communication', desc: 'Neutral editable templates go into a tracked parent-communication outbox.' },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
                 <item.icon className="w-4 h-4 text-primary mb-2" />

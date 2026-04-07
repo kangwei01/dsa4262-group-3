@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, AlertTriangle, Shield, ArrowUpDown, Activity } from 'lucide-react';
+import { Users, AlertTriangle, Shield, ArrowUpDown, Activity, CalendarClock, Send } from 'lucide-react';
+import { toast } from 'sonner';
 import ActionNeeded from '@/components/teacher/ActionNeeded';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
 import TrendSparkline from '@/components/teacher/TrendSparkline';
-import { useStudents } from '@/hooks/useWellbeingData';
+import { useOpenStudentSurveys, useTeacherStudents } from '@/hooks/useWellbeingData';
 import {
   DISTRESS_THRESHOLD,
   HIGH_DISTRESS_THRESHOLD,
@@ -16,6 +17,7 @@ import {
   getRecommendedAction,
   hasThreeWeekDistressFlag,
 } from '@/lib/rfModel';
+import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 const keyFactorLabel = (student) => {
   if (student.key_factors.length === 0) return '—';
@@ -47,7 +49,9 @@ const urgencyRank = (student) => {
 export default function Dashboard() {
   const [filterRisk, setFilterRisk] = useState('all');
   const [sortBy, setSortBy] = useState('urgency');
-  const { data: students = [], isLoading, error } = useStudents();
+  const { teacher } = useTeacherAccess();
+  const { data: students = [], isLoading, error } = useTeacherStudents(teacher);
+  const openStudentSurveys = useOpenStudentSurveys();
 
   const filtered = students
     .filter((student) => filterRisk === 'all' || student.risk_level === filterRisk)
@@ -73,6 +77,25 @@ export default function Dashboard() {
     )).length,
   };
 
+  const handleBatchOpen = async (surveyType, targetStudents) => {
+    try {
+      await openStudentSurveys.mutateAsync({
+        studentIds: targetStudents.map((student) => student.id),
+        surveyType,
+        teacherEmail: teacher?.teacher_identifier || 'wellbeing@school.edu',
+        notes: `${surveyType === 'monthly' ? 'Monthly refresh' : 'Weekly pulse'} opened in a teacher batch action.`,
+      });
+      toast.success(`${surveyType === 'monthly' ? 'Monthly refresh' : 'Weekly pulse'} opened for ${targetStudents.length} student${targetStudents.length === 1 ? '' : 's'}.`);
+    } catch (batchError) {
+      toast.error(batchError.message || 'Could not open the survey batch right now.');
+    }
+  };
+
+  const filteredStudentIds = filtered.map((student) => student.id);
+  const monthlyTargetStudents = filtered.filter((student) => (
+    student.risk_level !== 'low' || hasThreeWeekDistressFlag(student.weekly_scores)
+  ));
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
@@ -82,8 +105,29 @@ export default function Dashboard() {
             Detect concerns, decide the next step, act supportively, record it, and follow up.
           </p>
         </div>
-        <div className="text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-lg">
-          {error ? 'Backend fallback active' : 'Synced with backend'}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-lg">
+            {teacher?.name || 'Teacher workspace'} · {error ? 'Backend fallback active' : 'Synced with backend'}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={openStudentSurveys.isPending || filteredStudentIds.length === 0}
+            onClick={() => handleBatchOpen('weekly', filtered)}
+          >
+            <Send className="w-3.5 h-3.5" />
+            Open weekly pulse
+          </Button>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            disabled={openStudentSurveys.isPending || monthlyTargetStudents.length === 0}
+            onClick={() => handleBatchOpen('monthly', monthlyTargetStudents)}
+          >
+            <CalendarClock className="w-3.5 h-3.5" />
+            Open monthly refresh
+          </Button>
         </div>
       </div>
 
@@ -112,6 +156,9 @@ export default function Dashboard() {
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Privacy notice</p>
         <p className="text-sm text-foreground leading-relaxed">
           Student responses are confidential and should be used for support purposes only.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          This workspace is scoped to {teacher?.teacher_identifier || 'the signed-in teacher account'}.
         </p>
       </div>
 

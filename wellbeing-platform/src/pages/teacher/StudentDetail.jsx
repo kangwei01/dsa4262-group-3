@@ -19,7 +19,7 @@ import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
 import RiskChart from '@/components/teacher/RiskChart';
 import DecisionPanel from '@/components/teacher/DecisionPanel';
-import { useOpenStudentSurvey, useStudent, useStudentCheckIns, useTeacherActions } from '@/hooks/useWellbeingData';
+import { useOpenStudentSurvey, useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
 import {
   buildSupportCardsFromSignals,
   DISTRESS_THRESHOLD,
@@ -28,6 +28,7 @@ import {
   hasThreeWeekDistressFlag,
 } from '@/lib/rfModel';
 import { buildFollowUpRecommendation } from '@/lib/wellbeingContent';
+import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 const categoryIcons = {
   sleep: Moon,
@@ -58,7 +59,8 @@ const actionLabels = {
 
 export default function StudentDetail() {
   const { id } = useParams();
-  const { data: student, isLoading } = useStudent(id);
+  const { teacher } = useTeacherAccess();
+  const { data: student, isLoading } = useTeacherStudent(id, teacher);
   const { data: checkIns = [] } = useStudentCheckIns(id);
   const { data: teacherActions = [] } = useTeacherActions(id);
   const openStudentSurvey = useOpenStudentSurvey();
@@ -91,7 +93,7 @@ export default function StudentDetail() {
       await openStudentSurvey.mutateAsync({
         studentId: student.id,
         surveyType,
-        teacherEmail: student.assigned_teacher || 'wellbeing@school.edu',
+        teacherEmail: teacher?.teacher_identifier || student.assigned_teacher || 'wellbeing@school.edu',
       });
       toast.success(`${surveyType === 'monthly' ? 'Monthly refresh' : 'Weekly pulse'} opened for this student`);
     } catch (error) {
@@ -383,9 +385,28 @@ export default function StudentDetail() {
                       <p className="text-[11px] text-muted-foreground mt-1">
                         Outcome: {action.outcome || 'pending'}{action.completed ? ' · completed' : ''}
                       </p>
+                      {action.follow_up_due_at && (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Follow-up due: {new Date(action.follow_up_due_at).toLocaleDateString()}
+                        </p>
+                      )}
                       <p className="text-sm text-foreground mt-2 leading-relaxed">
                         {action.notes || action.referral_summary || 'No notes recorded.'}
                       </p>
+                      {action.generated_parent_message && (
+                        <div className="mt-3 rounded-xl border border-border/60 bg-secondary/20 p-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Parent communication</p>
+                          <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{action.generated_parent_message}</p>
+                        </div>
+                      )}
+                      {action.escalation_payload && (
+                        <div className="mt-3 rounded-xl border border-border/60 bg-secondary/20 p-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Escalation package</p>
+                          <p className="text-xs text-foreground">
+                            {(action.escalation_payload.signals || []).length} signals · {(action.escalation_payload.student_check_ins || []).length || 0} check-ins included
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
