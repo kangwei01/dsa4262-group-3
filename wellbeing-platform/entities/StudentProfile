@@ -10,6 +10,10 @@
       "type": "string",
       "description": "Student login identifier, such as school email or student ID"
     },
+    "student_passcode": {
+      "type": "string",
+      "description": "Prototype passcode used to protect access to the student's profile"
+    },
     "age": {
       "type": "number",
       "description": "Student age (13-16)"
@@ -17,6 +21,10 @@
     "baseline_responses": {
       "type": "object",
       "description": "One-time onboarding responses used as profile context"
+    },
+    "monthly_responses": {
+      "type": "object",
+      "description": "Most recent monthly-refresh responses reused between weekly pulses"
     },
     "onboarding_completed": {
       "type": "boolean",
@@ -26,6 +34,44 @@
     "onboarding_completed_at": {
       "type": "string",
       "description": "ISO timestamp of when the one-time onboarding set was first completed"
+    },
+    "monthly_completed_at": {
+      "type": "string",
+      "description": "ISO timestamp of the most recent monthly refresh completion"
+    },
+    "survey_status": {
+      "type": "string",
+      "enum": [
+        "closed",
+        "open"
+      ],
+      "default": "closed",
+      "description": "Whether the current survey window is open for the student"
+    },
+    "survey_type": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "monthly"
+      ],
+      "default": "weekly",
+      "description": "Which survey window is currently open or scheduled next"
+    },
+    "survey_opened_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the current survey was opened"
+    },
+    "survey_opened_by": {
+      "type": "string",
+      "description": "Teacher who opened the current survey"
+    },
+    "next_follow_up_at": {
+      "type": "string",
+      "description": "ISO timestamp for the next planned teacher follow-up"
+    },
+    "next_follow_up_note": {
+      "type": "string",
+      "description": "Short description of the planned follow-up action"
     },
     "grade": {
       "type": "string",

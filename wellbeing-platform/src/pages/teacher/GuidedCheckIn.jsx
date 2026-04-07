@@ -1,29 +1,51 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, MessageSquare, ThumbsUp, ThumbsDown, Check, Copy, Eye } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Check, Copy, MessageSquare, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLogTeacherAction, useStudent } from '@/hooks/useWellbeingData';
-import { checkInPrompts, doTips, dontTips, observeNextTips } from '@/lib/wellbeingContent';
+import {
+  buildFollowUpRecommendation,
+  buildTeacherCheckInPrompts,
+  doTips,
+  dontTips,
+  observeNextTips,
+} from '@/lib/wellbeingContent';
+
+function buildDefaultFollowUpDate(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+}
 
 export default function GuidedCheckIn() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: student, isLoading } = useStudent(id);
   const logTeacherAction = useLogTeacherAction();
-  const [completed, setCompleted] = useState(false);
+  const [completed, setCompleted] = useState(true);
   const [notes, setNotes] = useState('');
   const [outcome, setOutcome] = useState('pending');
 
+  const followUp = useMemo(() => (
+    student ? buildFollowUpRecommendation(student) : { days: 14, title: 'Review again in 14 days', reason: '' }
+  ), [student]);
+  const [followUpDate, setFollowUpDate] = useState(buildDefaultFollowUpDate(14));
+
   if (isLoading) {
-    return <div className="max-w-2xl mx-auto py-10 text-sm text-muted-foreground">Loading student check-in guide…</div>;
+    return <div className="max-w-3xl mx-auto py-10 text-sm text-muted-foreground">Loading student check-in guide…</div>;
   }
 
   if (!student) return null;
+
+  const prompts = buildTeacherCheckInPrompts(student);
+  const observationCategory = student.key_factors[0]?.category || 'general';
+  const observationTips = observeNextTips[observationCategory] || observeNextTips.general;
 
   const handleSave = async () => {
     await logTeacherAction.mutateAsync({
@@ -32,8 +54,10 @@ export default function GuidedCheckIn() {
       notes,
       outcome,
       completed,
+      followUpDueAt: followUpDate ? new Date(`${followUpDate}T08:00:00`).toISOString() : null,
+      teacherEmail: student.assigned_teacher || 'wellbeing@school.edu',
     });
-    toast.success('Check-in logged successfully');
+    toast.success('Check-in and follow-up plan saved');
     navigate(`/teacher/student/${student.id}`);
   };
 
@@ -42,18 +66,15 @@ export default function GuidedCheckIn() {
     toast.success('Copied to clipboard');
   };
 
-  const observationCategory = student.key_factors[0]?.category || 'general';
-  const observationTips = observeNextTips[observationCategory] || observeNextTips.general;
-
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <Link to={`/teacher/student/${student.id}`}>
           <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
         </Link>
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Guided Check-in</h1>
-          <p className="text-sm text-muted-foreground">Conversation guide for {student.name}</p>
+          <h1 className="text-xl font-semibold text-foreground">Teacher Check-in Guide</h1>
+          <p className="text-sm text-muted-foreground">Act → Record → Follow-up for {student.name}</p>
         </div>
       </div>
 
@@ -61,10 +82,10 @@ export default function GuidedCheckIn() {
         <CardContent className="p-5">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-sm text-foreground">Conversation Starters</h3>
+            <h3 className="font-semibold text-sm text-foreground">Personalised conversation prompts</h3>
           </div>
           <div className="space-y-2">
-            {checkInPrompts.map((prompt) => (
+            {prompts.map((prompt) => (
               <div key={prompt} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 group">
                 <p className="text-sm text-foreground italic flex-1">"{prompt}"</p>
                 <button onClick={() => copyPrompt(prompt)} className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -93,6 +114,7 @@ export default function GuidedCheckIn() {
             </ul>
           </CardContent>
         </Card>
+
         <Card className="border-rose-200 bg-rose-50/30">
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-3">
@@ -114,21 +136,13 @@ export default function GuidedCheckIn() {
       <Card className="mb-6 border-sky-200 bg-sky-50/30">
         <CardContent className="p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Eye className="w-4 h-4 text-sky-600" />
-            <h3 className="font-semibold text-sm text-sky-700">What to observe next</h3>
+            <CalendarClock className="w-4 h-4 text-sky-600" />
+            <h3 className="font-semibold text-sm text-sky-700">What to look for next</h3>
           </div>
-          <p className="text-xs text-sky-700/80 mb-3">
-            After this check-in, look for these behavioural signs in the coming days and weeks.
-          </p>
+          <p className="text-xs text-sky-700/80 mb-3">{followUp.reason}</p>
           <div className="space-y-2">
             {observationTips.map((tip) => (
               <div key={tip} className="flex items-start gap-2 text-xs text-sky-700">
-                <span className="shrink-0 mt-0.5">→</span>
-                <span>{tip}</span>
-              </div>
-            ))}
-            {observeNextTips.general.map((tip) => (
-              <div key={`general-${tip}`} className="flex items-start gap-2 text-xs text-sky-700/70">
                 <span className="shrink-0 mt-0.5">→</span>
                 <span>{tip}</span>
               </div>
@@ -138,39 +152,50 @@ export default function GuidedCheckIn() {
       </Card>
 
       <Card>
-        <CardContent className="p-5">
-          <h3 className="font-semibold text-sm text-foreground mb-4">Log This Check-in</h3>
+        <CardContent className="p-5 space-y-5">
+          <h3 className="font-semibold text-sm text-foreground">Record this action</h3>
 
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3">
             <Checkbox checked={completed} onCheckedChange={setCompleted} id="completed" />
             <label htmlFor="completed" className="text-sm text-foreground cursor-pointer">
-              Check-in completed
+              Teacher check-in completed
             </label>
           </div>
 
-          <div className="mb-4">
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Notes</label>
-            <Textarea
-              placeholder="How did the conversation go? Any observations..."
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              className="min-h-[80px]"
-            />
-          </div>
-
-          <div className="mb-5">
+          <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Outcome</label>
             <Select value={outcome} onValueChange={setOutcome}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-56">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">Pending / Too early</SelectItem>
+                <SelectItem value="pending">Too early to tell</SelectItem>
                 <SelectItem value="improved">Improved</SelectItem>
-                <SelectItem value="same">Same</SelectItem>
+                <SelectItem value="same">About the same</SelectItem>
                 <SelectItem value="worse">Worse</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Check-in notes</label>
+            <Textarea
+              placeholder="What stood out in the conversation? What support was agreed?"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              className="min-h-[110px]"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Follow-up reminder</label>
+            <Input
+              type="date"
+              value={followUpDate}
+              onChange={(event) => setFollowUpDate(event.target.value)}
+              className="max-w-xs"
+            />
+            <p className="text-[11px] text-muted-foreground mt-2">{followUp.title}</p>
           </div>
 
           <Button onClick={handleSave} disabled={logTeacherAction.isPending} className="w-full gap-2">
@@ -179,7 +204,7 @@ export default function GuidedCheckIn() {
             ) : (
               <Check className="w-4 h-4" />
             )}
-            Save Check-in Log
+            Save check-in and reminder
           </Button>
         </CardContent>
       </Card>

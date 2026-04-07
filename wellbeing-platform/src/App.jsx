@@ -40,19 +40,14 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        {/* Student routes */}
         <Route path="/" element={<WeeklyCheckIn />} />
         <Route path="/feedback" element={<Feedback />} />
-
-        {/* Teacher routes */}
         <Route path="/teacher" element={<Dashboard />} />
         <Route path="/teacher/students" element={<StudentsPage />} />
         <Route path="/teacher/questions" element={<QuestionsDashboard />} />
         <Route path="/teacher/student/:id" element={<StudentDetail />} />
         <Route path="/teacher/student/:id/checkin" element={<GuidedCheckIn />} />
         <Route path="/teacher/student/:id/escalate" element={<Escalation />} />
-
-        {/* System logic */}
         <Route path="/system-logic" element={<SystemLogic />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

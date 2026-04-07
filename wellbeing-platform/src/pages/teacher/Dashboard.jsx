@@ -66,9 +66,11 @@ export default function Dashboard() {
 
   const stats = {
     total: students.length,
-    flagged: students.filter((student) => hasThreeWeekDistressFlag(student.weekly_scores)).length,
-    high: students.filter((student) => student.risk_score >= HIGH_DISTRESS_THRESHOLD).length,
-    actioned: students.filter((student) => ['check_in_completed', 'referred'].includes(student.action_status)).length,
+    flagged: students.filter((student) => student.risk_score >= HIGH_DISTRESS_THRESHOLD).length,
+    sustained: students.filter((student) => hasThreeWeekDistressFlag(student.weekly_scores)).length,
+    followUpDue: students.filter((student) => (
+      student.next_follow_up_at && Date.parse(student.next_follow_up_at) <= Date.now()
+    )).length,
   };
 
   return (
@@ -77,7 +79,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Student Wellbeing Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Live student profiles with score trends, intervention status, and 3-week distress flags.
+            Detect concerns, decide the next step, act supportively, record it, and follow up.
           </p>
         </div>
         <div className="text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-lg">
@@ -88,9 +90,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Total Students', value: stats.total, icon: Users, color: 'text-primary bg-primary/10' },
-          { label: '3-Week Distress Flags', value: stats.flagged, icon: Activity, color: 'text-amber-700 bg-amber-50' },
-          { label: 'High Distress This Week', value: stats.high, icon: AlertTriangle, color: 'text-rose-600 bg-rose-50' },
-          { label: 'Actions Taken', value: stats.actioned, icon: Shield, color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Flagged This Week', value: stats.flagged, icon: AlertTriangle, color: 'text-rose-600 bg-rose-50' },
+          { label: 'Sustained Monitor Pattern', value: stats.sustained, icon: Activity, color: 'text-amber-700 bg-amber-50' },
+          { label: 'Follow-ups Due', value: stats.followUpDue, icon: Shield, color: 'text-sky-700 bg-sky-50' },
         ].map((stat) => (
           <Card key={stat.label} className="border-border/50">
             <CardContent className="p-4 flex items-center gap-3">
@@ -106,6 +108,13 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <div className="mb-6 rounded-2xl border border-border/60 bg-card px-4 py-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Privacy notice</p>
+        <p className="text-sm text-foreground leading-relaxed">
+          Student responses are confidential and should be used for support purposes only.
+        </p>
+      </div>
+
       <ActionNeeded students={students} />
 
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
@@ -115,10 +124,10 @@ export default function Dashboard() {
               <SelectValue placeholder="All levels" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All risk levels</SelectItem>
-              <SelectItem value="high">High risk only</SelectItem>
-              <SelectItem value="medium">Medium risk only</SelectItem>
-              <SelectItem value="low">Low risk only</SelectItem>
+              <SelectItem value="all">All support bands</SelectItem>
+              <SelectItem value="high">Flagged only</SelectItem>
+              <SelectItem value="medium">Monitor only</SelectItem>
+              <SelectItem value="low">Routine only</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -150,12 +159,12 @@ export default function Dashboard() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
                     <span className="flex items-center gap-1"><ArrowUpDown className="w-3 h-3" />Latest Score</span>
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Risk Level</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Support Band</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Weekly Trend</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">3-Week Distress</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Key Factor</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">3-Week Monitor</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Main Signal</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Action</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Next Step</th>
                 </tr>
               </thead>
               <tbody>
@@ -211,7 +220,7 @@ export default function Dashboard() {
                         {hasFlag ? (
                           <div className="inline-flex flex-col gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                             <span className="text-[11px] font-semibold text-amber-700">Flag active</span>
-                            <span className="text-[10px] text-amber-700/80">{streak} consecutive weeks at {DISTRESS_THRESHOLD}+</span>
+                            <span className="text-[10px] text-amber-700/80">{streak} consecutive weeks at {DISTRESS_THRESHOLD.toFixed(2)}+</span>
                           </div>
                         ) : (
                           <span className="text-[11px] text-muted-foreground">No active streak</span>

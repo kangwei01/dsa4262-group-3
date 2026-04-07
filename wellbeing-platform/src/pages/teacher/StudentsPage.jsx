@@ -33,10 +33,10 @@ export default function StudentsPage() {
         <Select value={filterRisk} onValueChange={setFilterRisk}>
           <SelectTrigger className="w-36"><SelectValue placeholder="Risk level" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Levels</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="all">All Bands</SelectItem>
+            <SelectItem value="high">Flagged</SelectItem>
+            <SelectItem value="medium">Monitor</SelectItem>
+            <SelectItem value="low">Routine</SelectItem>
           </SelectContent>
         </Select>
         <Select value={filterTrend} onValueChange={setFilterTrend}>

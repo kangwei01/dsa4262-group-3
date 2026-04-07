@@ -10,6 +10,14 @@
       "type": "string",
       "description": "Week identifier"
     },
+    "survey_type": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "monthly"
+      ],
+      "description": "Whether this submission was a weekly pulse or a monthly refresh"
+    },
     "q_overwhelmed": {
       "type": "number",
       "description": "How often felt overwhelmed (1-5)"
@@ -45,6 +53,10 @@
     "baseline_responses": {
       "type": "object",
       "description": "Snapshot of one-time profile inputs used during scoring"
+    },
+    "monthly_responses": {
+      "type": "object",
+      "description": "Snapshot of the latest monthly-refresh context used during scoring"
     },
     "top_factors": {
       "type": "array",

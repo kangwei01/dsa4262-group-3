@@ -6,8 +6,6 @@ import {
   hasSustainedIncrease,
   hasThreeWeekDistressFlag,
 } from '@/lib/rfModel';
-
-// Custom tooltip
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
@@ -31,7 +29,7 @@ export default function RiskChart({ weeklyScores }) {
         {hasDistressFlag && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
             <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-            {distressStreak} consecutive weeks in the distress range ({DISTRESS_THRESHOLD}+).
+            {distressStreak} consecutive weeks in the monitoring band ({DISTRESS_THRESHOLD.toFixed(2)}+).
           </div>
         )}
         {sustained && (
@@ -68,17 +66,15 @@ export default function RiskChart({ weeklyScores }) {
               tickFormatter={(v) => `${v}`}
             />
             <Tooltip content={<CustomTooltip />} />
-
-            {/* Zone bands */}
             <ReferenceArea y1={0} y2={DISTRESS_THRESHOLD} fill="#10b981" fillOpacity={0.04} />
             <ReferenceArea y1={DISTRESS_THRESHOLD} y2={HIGH_DISTRESS_THRESHOLD} fill="#f59e0b" fillOpacity={0.05} />
             <ReferenceArea y1={HIGH_DISTRESS_THRESHOLD} y2={100} fill="#f87171" fillOpacity={0.06} />
 
             <ReferenceLine y={HIGH_DISTRESS_THRESHOLD} stroke="#f87171" strokeDasharray="5 3" strokeWidth={1.5}
-              label={{ value: 'High', position: 'right', fontSize: 10, fill: '#f87171' }}
+              label={{ value: 'Flag', position: 'right', fontSize: 10, fill: '#f87171' }}
             />
             <ReferenceLine y={DISTRESS_THRESHOLD} stroke="#f59e0b" strokeDasharray="5 3" strokeWidth={1.5}
-              label={{ value: 'Medium', position: 'right', fontSize: 10, fill: '#f59e0b' }}
+              label={{ value: 'Monitor', position: 'right', fontSize: 10, fill: '#f59e0b' }}
             />
 
             <Area
@@ -93,8 +89,6 @@ export default function RiskChart({ weeklyScores }) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-
-      {/* Past 3 weeks summary */}
       <div className="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground border-t border-border/50 pt-3">
         <span className="font-medium text-foreground">Past 3 weeks:</span>
         {weeklyScores.slice(-3).map((w, i) => (

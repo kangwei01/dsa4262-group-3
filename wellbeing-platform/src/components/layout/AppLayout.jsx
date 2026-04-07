@@ -22,7 +22,6 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
@@ -79,12 +78,10 @@ export default function AppLayout() {
           </div>
         </div>
       </header>
-
-      {/* Privacy banner */}
       <div className="bg-primary/5 border-b border-primary/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2 text-xs text-primary">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-          <span>Your data is private and secure. Only your assigned teacher can view anonymized wellbeing trends.</span>
+          <span>Your data is private and used for support. Teachers can view submitted check-ins so they can follow up appropriately.</span>
         </div>
       </div>
 

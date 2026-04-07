@@ -21,12 +21,9 @@ export default function StudentCard({ student }) {
     <Link to={`/teacher/student/${student.id}`}>
       <Card className="border border-border/50 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer group">
         <CardContent className="p-4 flex items-center gap-4">
-          {/* Avatar */}
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
             {student.name.charAt(0)}
           </div>
-
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm text-foreground">{student.name}</span>
@@ -37,7 +34,7 @@ export default function StudentCard({ student }) {
               <TrendIndicator trend={student.trend} />
               {hasFlag && (
                 <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                  3-week flag
+                  3-week pattern
                 </span>
               )}
               {student.confidence && (
@@ -47,8 +44,6 @@ export default function StudentCard({ student }) {
               )}
             </div>
           </div>
-
-          {/* Status & arrow */}
           <div className="flex items-center gap-3">
             {status && (
               <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium ${status.color}`}>

@@ -1,62 +1,167 @@
-export const checkInPrompts = [
-  "I've noticed this week may have felt heavier than usual. How are things feeling from your side?",
-  "You don't need to explain everything at once, but I wanted to check in and see how you're doing.",
-  "Has anything about school, friends, or home been making things harder recently?",
-  "What has felt most manageable this week, and what has felt hardest?",
-  "If support would help, we can work out together what kind would feel useful.",
-];
+import { FLAG_THRESHOLD, MONITOR_THRESHOLD } from '@/lib/rfModel';
 
 export const doTips = [
-  'Use open-ended questions and give the student time to answer.',
-  'Reflect back what you heard before moving to solutions.',
-  'Normalise help-seeking without minimising the situation.',
-  'Agree one specific follow-up step before the conversation ends.',
-  'Document patterns across weeks, not just today’s mood.',
+  'Start with curiosity, not conclusions.',
+  'Use open questions and let the student answer at their own pace.',
+  'Reflect back what you heard before moving into advice.',
+  'Agree one practical next step before the conversation ends.',
+  'Write down the pattern and the follow-up plan while it is still fresh.',
 ];
 
 export const dontTips = [
-  "Don't frame the signal as a diagnosis or a label.",
-  "Don't assume the top feature tells the whole story.",
-  "Don't push for disclosure if the student is not ready.",
-  "Don't treat bullying or safety issues as something to 'just monitor'.",
+  "Don't frame the result as a diagnosis.",
+  "Don't assume the top signal explains everything.",
+  "Don't push for more disclosure than the student is ready for.",
+  "Don't minimise bullying, safety, or repeated distress as a one-off.",
   "Don't promise secrecy beyond safeguarding limits.",
 ];
 
 export const observeNextTips = {
   sleep: [
-    'Look for repeated tiredness, late arrivals, or reduced concentration first thing in the day.',
-    'Notice whether fatigue eases after busy periods or remains steady across multiple weeks.',
+    'Look for repeated tiredness, lateness, or concentration dips early in the day.',
+    'Check whether fatigue settles after workload peaks or stays elevated across weeks.',
   ],
   workload: [
-    'Watch for avoidance near deadlines, incomplete work, or visible overwhelm when tasks stack up.',
-    'See whether pressure settles after key assessments or stays elevated.',
+    'Watch for missed deadlines, visible overwhelm, or avoidance near deadlines.',
+    'Notice whether stress drops after assessments or keeps climbing.',
   ],
   family: [
-    'Check whether the student mentions home stress, less support, or hesitation about going home.',
-    'Notice whether the student seems relieved by adult contact in school or avoids it.',
+    'Notice hesitation around going home, asking for help, or talking about support at home.',
+    'Check whether the student seems relieved by school-based adult support.',
   ],
   social: [
-    'Observe break times, group work, and whether the student is withdrawing from usual peers.',
-    'If bullying is suspected, move from observation to active safeguarding and documentation.',
+    'Watch for withdrawal during breaks, group work, or changes in usual friendship patterns.',
+    'If bullying is suspected, move quickly into documentation and safeguarding support.',
   ],
   physical: [
-    'Look for repeated headaches, stomach complaints, requests to leave class, or school-nurse visits.',
-    'Notice whether physical complaints appear around specific lessons, people, or stress points.',
+    'Notice repeated headaches, stomachaches, or requests to leave class.',
+    'See whether the physical complaints show up around specific stress points.',
   ],
   school: [
-    'Watch for disengagement, reduced participation, or sudden distrust of teachers and classmates.',
-    'Notice whether belonging improves after a supportive adult check-in.',
+    'Watch for disengagement, low belonging, or sharp drops in trust toward adults in school.',
+    'Notice whether classroom support changes the pattern over the next 2 weeks.',
   ],
   online: [
-    'Ask gently whether online contact feels supportive, draining, or conflict-heavy right now.',
-    'If the student hints at online harm, save details and follow safeguarding processes promptly.',
+    'Ask whether online spaces feel supportive, draining, or conflict-heavy at the moment.',
+    'If there are signs of online harm, keep evidence and follow safeguarding steps.',
   ],
   self_image: [
-    'Notice changes in confidence, PE participation, or appearance-related self-talk.',
-    'Watch for comparison, teasing, or avoidance patterns that may not show up in grades.',
+    'Notice changes in confidence, PE participation, or appearance-focused self-talk.',
+    'Watch for teasing, avoidance, or comparison patterns that keep repeating.',
   ],
   general: [
-    'Compare this week with the prior two or three weeks rather than judging a single moment.',
-    'If the pattern does not improve after a supportive check-in, escalate the support plan.',
+    'Compare the current week with the prior two weeks instead of judging one moment.',
+    'If the pattern stays elevated after support, step up the support plan.',
   ],
 };
+
+export const generalSupportResources = [
+  {
+    title: 'Sleep reset',
+    description: 'Useful when the week has felt draining or sleep has been harder than usual.',
+    actions: [
+      'Try a calmer 30-minute wind-down before bed.',
+      'Keep screens out of that last 30 minutes if you can.',
+      'Aim for the sleep hours recommended for your age group.',
+    ],
+  },
+  {
+    title: 'Stress reset',
+    description: 'Useful when school or deadlines have felt especially heavy this week.',
+    actions: [
+      'Break one big task into the next tiny step only.',
+      'Try one short focus block instead of forcing a long one.',
+      'Tell a teacher early if several deadlines are landing at once.',
+    ],
+  },
+  {
+    title: 'Reach out early',
+    description: 'Useful when the week feels heavier than what you want to handle alone.',
+    actions: [
+      'Start with one trusted adult or friend.',
+      'You do not need the perfect words to ask for support.',
+      'A short honest message is enough to start the conversation.',
+    ],
+  },
+];
+
+function getTopFactorLabels(student) {
+  return (student?.key_factors || [])
+    .map((item) => item.factor)
+    .filter(Boolean)
+    .slice(0, 2);
+}
+
+export function buildTeacherCheckInPrompts(student) {
+  const factors = getTopFactorLabels(student);
+  const joinedFactors = factors.length > 0 ? factors.join(' and ').toLowerCase() : 'a few areas';
+  const trendText = student?.trend === 'worsening'
+    ? 'the last few weeks have looked a bit heavier'
+    : 'this week may have felt heavier than usual';
+
+  return [
+    `I wanted to check in because ${trendText}, especially around ${joinedFactors}. How have things felt from your side?`,
+    "You're not in trouble. I just wanted to make space in case there's anything important you'd want me to know.",
+    'What has felt hardest to manage lately, and what has still felt a little bit manageable?',
+    'Would it help if we worked out one small support step together for the next 2 weeks?',
+  ];
+}
+
+export function buildFollowUpRecommendation(student) {
+  const score = Number(student?.risk_score || 0);
+  const baseDays = score >= FLAG_THRESHOLD ? 14 : score >= MONITOR_THRESHOLD ? 14 : 21;
+  const reason = score >= FLAG_THRESHOLD
+    ? 'Student is currently in the flagged band and should be reviewed again soon.'
+    : score >= MONITOR_THRESHOLD
+      ? 'Student is in the monitoring band and should be reviewed before the pattern becomes entrenched.'
+      : 'Routine follow-up is still useful so support feels consistent rather than reactive.';
+
+  return {
+    days: baseDays,
+    title: `Review again in ${baseDays} days`,
+    reason,
+  };
+}
+
+export function buildParentMessage(student) {
+  const topFactors = getTopFactorLabels(student);
+  const factorLine = topFactors.length > 0
+    ? `We have noticed some recent wellbeing signals around ${topFactors.join(' and ').toLowerCase()}.`
+    : 'We have noticed some recent wellbeing signals that suggest the student may benefit from additional support.';
+
+  return [
+    `Hello parent/guardian of ${student?.name || 'the student'},`,
+    '',
+    'I am reaching out to share a supportive wellbeing update.',
+    factorLine,
+    'At this stage, this is not an alarm message. It is a check-in so we can support the student early and appropriately.',
+    'We would value your partnership in gently checking how things have been feeling recently and whether there is any support that would help at home or in school.',
+    '',
+    'If helpful, we can arrange a follow-up conversation.',
+    '',
+    'Thank you,',
+    student?.assigned_teacher || 'School support team',
+  ].join('\n');
+}
+
+export function buildEscalationPayload(student, teacherNotes = '') {
+  return {
+    student: {
+      id: student?.id,
+      name: student?.name,
+      grade: student?.grade,
+      age: student?.age,
+      student_identifier: student?.student_identifier,
+    },
+    scoring: {
+      risk_score: student?.risk_score,
+      risk_level: student?.risk_level,
+      trend: student?.trend,
+      confidence: student?.confidence,
+    },
+    signals: student?.key_factors || [],
+    weekly_scores: student?.weekly_scores || [],
+    teacher_notes: teacherNotes,
+    generated_at: new Date().toISOString(),
+  };
+}

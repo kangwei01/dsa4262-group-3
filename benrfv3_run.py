@@ -14,7 +14,13 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import ElasticNetCV
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.metrics import (
+    confusion_matrix,
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+    roc_auc_score,
+)
 
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 200)
@@ -31,6 +37,7 @@ TEST_SIZE = 0.20
 RANDOM_SEEDS = [11, 23, 37, 49, 61]
 MIN_STRATUM_COUNT = 30
 IMPORTANCE_COVERAGE = 0.90
+CLASSIFICATION_THRESHOLDS = [35, 60]
 
 
 def cronbach_alpha(df_items):
@@ -49,10 +56,50 @@ def rmse(y_true, y_pred):
     return np.sqrt(mean_squared_error(y_true, y_pred))
 
 
+def compute_threshold_metrics(y_true, y_score, distress_cutoff, decision_cutoff=None):
+    decision_cutoff = distress_cutoff if decision_cutoff is None else decision_cutoff
+    actual_positive = (pd.Series(y_true) >= distress_cutoff).astype(int)
+    predicted_positive = (pd.Series(y_score) >= decision_cutoff).astype(int)
+
+    roc_auc = (
+        roc_auc_score(actual_positive, y_score)
+        if actual_positive.nunique() > 1
+        else np.nan
+    )
+
+    tn, fp, fn, tp = confusion_matrix(
+        actual_positive,
+        predicted_positive,
+        labels=[0, 1],
+    ).ravel()
+
+    positive_count = tp + fn
+    negative_count = tn + fp
+
+    return {
+        "distress_cutoff": distress_cutoff,
+        "decision_cutoff": decision_cutoff,
+        "positive_rate": actual_positive.mean(),
+        "roc_auc": roc_auc,
+        "tp": tp,
+        "fn": fn,
+        "fp": fp,
+        "tn": tn,
+        "fnr": fn / positive_count if positive_count else np.nan,
+        "tpr": tp / positive_count if positive_count else np.nan,
+        "fpr": fp / negative_count if negative_count else np.nan,
+    }
+
+
 def print_header(title):
     print("\n" + "=" * len(title))
     print(title)
     print("=" * len(title))
+
+
+def rescale_series(series, source_min, source_max):
+    numeric = pd.to_numeric(series, errors="coerce")
+    return (numeric - source_min) / (source_max - source_min)
 
 
 def clean_text(value):
@@ -216,6 +263,8 @@ def build_model_inputs(working_df, feature_names):
 def run_repeated_oos(models, X_data, y_data, strata_data, feature_names):
     all_oos_results = []
     rf_importances = []
+    threshold_rows = []
+    oos_prediction_rows = []
 
     for model_name, base_model in models.items():
         print(f"\n--- {model_name} ---")
@@ -248,6 +297,33 @@ def run_repeated_oos(models, X_data, y_data, strata_data, feature_names):
             }
             all_oos_results.append(row)
 
+            oos_prediction_rows.append(
+                pd.DataFrame(
+                    {
+                        "model": model_name,
+                        "run": run_id,
+                        "seed": seed,
+                        "row_index": y_test.index,
+                        "actual_distress": y_test.values,
+                        "predicted_distress": y_pred_test,
+                    }
+                )
+            )
+
+            for distress_cutoff in CLASSIFICATION_THRESHOLDS:
+                threshold_rows.append(
+                    {
+                        "model": model_name,
+                        "run": run_id,
+                        "seed": seed,
+                        **compute_threshold_metrics(
+                            y_test,
+                            y_pred_test,
+                            distress_cutoff=distress_cutoff,
+                        ),
+                    }
+                )
+
             if model_name == "RandomForest":
                 rf_importances.append(
                     pd.DataFrame(
@@ -264,7 +340,12 @@ def run_repeated_oos(models, X_data, y_data, strata_data, feature_names):
                 f"test_r2={row['test_r2']:.4f}, test_rmse={row['test_rmse']:.2f}"
             )
 
-    return pd.DataFrame(all_oos_results), rf_importances
+    return (
+        pd.DataFrame(all_oos_results),
+        rf_importances,
+        pd.DataFrame(threshold_rows),
+        pd.concat(oos_prediction_rows, ignore_index=True),
+    )
 
 
 def summarize_feature_importance(rf_importances):
@@ -277,6 +358,23 @@ def summarize_feature_importance(rf_importances):
         )
         .sort_values("mean_importance", ascending=False)
         .reset_index()
+    )
+
+
+def summarize_threshold_metrics(threshold_df):
+    return (
+        threshold_df.groupby(["model", "distress_cutoff"])
+        .agg(
+            mean_positive_rate=("positive_rate", "mean"),
+            mean_roc_auc=("roc_auc", "mean"),
+            std_roc_auc=("roc_auc", "std"),
+            mean_fnr=("fnr", "mean"),
+            std_fnr=("fnr", "std"),
+            mean_tpr=("tpr", "mean"),
+            mean_fpr=("fpr", "mean"),
+        )
+        .reset_index()
+        .round(4)
     )
 
 
@@ -328,17 +426,13 @@ print("Percent removed:", round((len(df) - len(df_y)) / len(df) * 100, 2), "%")
 alpha_val = cronbach_alpha(df_y[reversed_y_vars])
 print("Cronbach's alpha for distress items:", round(alpha_val, 4))
 
-from sklearn.preprocessing import StandardScaler as _SS
-_sc = _SS()
-z_vars = [v + "_z" for v in reversed_y_vars]
-df_y[z_vars] = _sc.fit_transform(df_y[reversed_y_vars])
-df_y["distress_score_z"] = df_y[z_vars].mean(axis=1)
+df_y["feellow_risk"] = rescale_series(df_y["feellow_rev"], 1, 5)
+df_y["irritable_risk"] = rescale_series(df_y["irritable_rev"], 1, 5)
+df_y["nervous_risk"] = rescale_series(df_y["nervous_rev"], 1, 5)
+df_y["lifesat_risk"] = rescale_series(df_y["lifesat_rev"], 0, 10)
 
-t_min = df_y["distress_score_z"].min()
-t_max = df_y["distress_score_z"].max()
-df_y["distress_score_100"] = (
-    (df_y["distress_score_z"] - t_min) / (t_max - t_min)
-) * 100
+risk_vars = ["feellow_risk", "irritable_risk", "nervous_risk", "lifesat_risk"]
+df_y["distress_score_100"] = df_y[risk_vars].mean(axis=1) * 100
 
 print(df_y["distress_score_100"].describe())
 
@@ -370,8 +464,6 @@ print_header("BUILD FEATURES FROM WORKBOOK")
 
 feature_plan = load_feature_plan(GROUPINGS_PATH)
 feature_df, feature_cols, feature_manifest = build_feature_matrix(df_y, feature_plan)
-
-# Replace any same-named raw columns (for standalone features) with numeric versions.
 existing_feature_names = [c for c in feature_df.columns if c in df_y.columns]
 df_y = df_y.drop(columns=existing_feature_names, errors="ignore")
 df_y = pd.concat([df_y, feature_df], axis=1)
@@ -463,7 +555,7 @@ rf_pipeline = Pipeline([
     ("imputer", SimpleImputer(strategy="median")),
     ("model",   RandomForestRegressor(
         n_estimators=500,
-        max_depth=15,
+        max_depth=10,
         min_samples_leaf=20,
         max_features="sqrt",
         n_jobs=-1,
@@ -494,7 +586,7 @@ best_rf_params = {
     "min_samples_split": 5,
     "min_samples_leaf": 5,
     "max_features": 0.5,
-    "max_depth": None,
+    "max_depth": 10,
     "n_jobs": -1,
     "random_state": 42,
 }
@@ -515,7 +607,7 @@ print_header("PRELIMINARY FEATURE IMPORTANCE RUN")
 screening_models = {
     "RandomForest": tuned_rf_pipeline,
 }
-screening_oos_df, screening_rf_importances = run_repeated_oos(
+screening_oos_df, screening_rf_importances, _, _ = run_repeated_oos(
     screening_models,
     X_all,
     y_all,
@@ -563,7 +655,7 @@ models = {
     "RandomForest": tuned_rf_pipeline,
 }
 
-oos_df, rf_importances = run_repeated_oos(
+oos_df, rf_importances, threshold_oos_df, oos_predictions_df = run_repeated_oos(
     models,
     X_selected,
     y_all,
@@ -603,6 +695,16 @@ for i, metric in enumerate(["test_r2", "test_rmse", "test_mae"]):
 plt.tight_layout()
 plt.show()
 
+print_header("THRESHOLD-BASED OOS SCREENING")
+
+print(
+    "Positive class is defined as actual distress_score_100 >= cutoff. "
+    "FNR uses predicted_distress >= cutoff as the positive decision rule."
+)
+
+threshold_summary = summarize_threshold_metrics(threshold_oos_df)
+print(threshold_summary.to_string(index=False))
+
 print_header("FEATURE IMPORTANCE")
 
 imp_summary = summarize_feature_importance(rf_importances)
@@ -635,11 +737,25 @@ diagnostic_df["predicted_distress"] = full_pred
 diagnostic_df["residual"]           = full_pred - diagnostic_df[TARGET]
 diagnostic_df["abs_error"]          = diagnostic_df["residual"].abs()
 
+full_sample_threshold_df = pd.DataFrame(
+    [
+        compute_threshold_metrics(
+            diagnostic_df[TARGET],
+            diagnostic_df["predicted_distress"],
+            distress_cutoff=cutoff,
+        )
+        for cutoff in CLASSIFICATION_THRESHOLDS
+    ]
+).round(4)
+
 in_sample_r2 = r2_score(diagnostic_df[TARGET], full_pred)
 rf_mean_oos = oos_df[oos_df["model"] == "RandomForest"]["test_r2"].mean()
 print(f"In-sample R2: {in_sample_r2:.4f}")
 print(f"Mean OOS R2:  {rf_mean_oos:.4f}")
 print(f"Overfit gap:  {in_sample_r2 - rf_mean_oos:.4f}")
+
+print("\nFull-sample threshold snapshot (optimistic, not OOS):")
+print(full_sample_threshold_df.to_string(index=False))
 
 plt.figure(figsize=(7, 6))
 sns.scatterplot(
@@ -681,18 +797,26 @@ print_header("SAVE OUTPUTS")
 output_files = {
     "screening": f"{OUTPUT_PREFIX}_feature_screening.csv",
     "oos": f"{OUTPUT_PREFIX}_oos_results.csv",
+    "threshold_metrics": f"{OUTPUT_PREFIX}_threshold_metrics.csv",
+    "threshold_summary": f"{OUTPUT_PREFIX}_threshold_summary.csv",
+    "oos_predictions": f"{OUTPUT_PREFIX}_oos_predictions.csv",
     "comparison": f"{OUTPUT_PREFIX}_vs_elasticnet_comparison.csv",
     "importance": f"{OUTPUT_PREFIX}_feature_importance.csv",
     "predictions": f"{OUTPUT_PREFIX}_final_predictions.csv",
+    "full_sample_thresholds": f"{OUTPUT_PREFIX}_full_sample_threshold_metrics.csv",
     "manifest": f"{OUTPUT_PREFIX}_feature_manifest.csv",
     "selected_manifest": f"{OUTPUT_PREFIX}_selected_feature_manifest.csv",
 }
 
 screening_imp_summary.to_csv(output_files["screening"], index=False)
 oos_df.to_csv(output_files["oos"], index=False)
+threshold_oos_df.to_csv(output_files["threshold_metrics"], index=False)
+threshold_summary.to_csv(output_files["threshold_summary"], index=False)
+oos_predictions_df.to_csv(output_files["oos_predictions"], index=False)
 comparison.to_csv(output_files["comparison"])
 imp_summary.to_csv(output_files["importance"], index=False)
 diagnostic_df.to_csv(output_files["predictions"], index=False)
+full_sample_threshold_df.to_csv(output_files["full_sample_thresholds"], index=False)
 feature_manifest.to_csv(output_files["manifest"], index=False)
 selected_feature_manifest.to_csv(output_files["selected_manifest"], index=False)
 
@@ -720,6 +844,9 @@ print(f"  Mean OOS MAE:  {en_oos['test_mae'].mean():.2f} +/- {en_oos['test_mae']
 
 print(f"\nR2:   {en_oos['test_r2'].mean():.4f} -> {rf_oos['test_r2'].mean():.4f} (+{rf_oos['test_r2'].mean() - en_oos['test_r2'].mean():.4f})")
 print(f"RMSE: {en_oos['test_rmse'].mean():.2f} -> {rf_oos['test_rmse'].mean():.2f} ({rf_oos['test_rmse'].mean() - en_oos['test_rmse'].mean():.2f})")
+
+print("\nThreshold-based OOS metrics:")
+print(threshold_summary.to_string(index=False))
 
 print("\nAll features by importance:")
 print(imp_summary.to_string(index=False))

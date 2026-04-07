@@ -21,7 +21,7 @@ export default function ActionNeeded({ students }) {
       <CardContent className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="w-4 h-4 text-destructive" />
-          <h3 className="font-semibold text-sm text-foreground">Priority Review</h3>
+          <h3 className="font-semibold text-sm text-foreground">Students Needing Review</h3>
           <span className="text-xs text-muted-foreground">({actionStudents.length} student{actionStudents.length > 1 ? 's' : ''})</span>
         </div>
         <div className="space-y-3">
@@ -44,7 +44,7 @@ export default function ActionNeeded({ students }) {
                       <TrendIndicator trend={student.trend} />
                       {hasThreeWeekDistressFlag(student.weekly_scores) && (
                         <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                          3-week flag
+                          3-week pattern
                         </span>
                       )}
                     </div>

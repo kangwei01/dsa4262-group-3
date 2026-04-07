@@ -2,6 +2,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Brain, CalendarClock, ListChecks, Sparkles } from 'lucide-react';
 import {
+  cadenceLabels,
+  monthlyQuestions,
   oneTimeQuestions,
   questionBankStats,
   weeklyQuestions,
@@ -82,7 +84,7 @@ function QuestionRow({ item }) {
         </div>
         <div className="text-right shrink-0">
           <p className="text-[11px] font-medium text-foreground uppercase tracking-wide">
-            {item.cadence === 'one_time' ? 'Asked once' : 'Weekly'}
+            {cadenceLabels[item.cadence] || item.cadence}
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">
             {item.aggregationMethod}
@@ -100,23 +102,24 @@ export default function QuestionsDashboard() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">RF Question Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-            This page translates the `benrfv3` random-forest inputs into the survey design for the prototype:
-            31 selected features, split into 5 onboarding questions and 26 weekly check-in questions, with grouped composites rephrased as umbrella questions instead of copying the raw HBSC item wording directly.
+            This page translates the current `benrfv3` random-forest inputs into the live survey design:
+            {` ${questionBankStats.total} selected features, split into ${questionBankStats.oneTime} asked-once item${questionBankStats.oneTime === 1 ? '' : 's'}, ${questionBankStats.weekly} weekly pulse item${questionBankStats.weekly === 1 ? '' : 's'}, and ${questionBankStats.monthly} monthly refresh item${questionBankStats.monthly === 1 ? '' : 's'}, with grouped composites rephrased as umbrella questions and live answer scales adjusted so the wording matches the monitoring window more naturally.`}
           </p>
         </div>
         <div className="rounded-2xl border border-primary/20 bg-primary/[0.03] px-4 py-3 max-w-sm">
           <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-1">Integration note</p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            The live student flow now follows this same question bank: one-time onboarding items are saved to the profile, and weekly items drive teacher scores, trends, and support prompts.
+            The live student flow now follows this same question bank: one-time onboarding items are saved to the profile, weekly pulse items drive the trend view, and monthly refresh items update the slower-changing context used in support prompts.
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {[
+          {[
           { label: 'Selected RF Features', value: questionBankStats.total, icon: Brain, tone: 'text-primary bg-primary/10' },
           { label: 'Asked Once', value: questionBankStats.oneTime, icon: CalendarClock, tone: 'text-sky-700 bg-sky-50' },
-          { label: 'Weekly Questions', value: questionBankStats.weekly, icon: ListChecks, tone: 'text-amber-700 bg-amber-50' },
+          { label: 'Weekly Pulse', value: questionBankStats.weekly, icon: ListChecks, tone: 'text-amber-700 bg-amber-50' },
+          { label: 'Monthly Refresh', value: questionBankStats.monthly, icon: CalendarClock, tone: 'text-indigo-700 bg-indigo-50' },
           { label: 'Grouped Composites', value: questionBankStats.groupedComposite, icon: Sparkles, tone: 'text-emerald-700 bg-emerald-50' },
           { label: 'Question Categories', value: questionBankStats.byCategory.length, icon: Sparkles, tone: 'text-emerald-700 bg-emerald-50' },
         ].map((stat) => (
@@ -163,13 +166,13 @@ export default function QuestionsDashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="border-border/60">
           <CardContent className="p-5">
             <div className="mb-4">
               <h2 className="text-sm font-semibold text-foreground">Onboarding Questions</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                These 5 baseline inputs are collected once because they are slow-changing profile variables.
+                {`These ${questionBankStats.oneTime} baseline input${questionBankStats.oneTime === 1 ? ' is' : 's are'} collected once because they represent slow-changing profile context in the current model.`}
               </p>
             </div>
             <div className="space-y-3">
@@ -183,13 +186,29 @@ export default function QuestionsDashboard() {
         <Card className="border-border/60">
           <CardContent className="p-5">
             <div className="mb-4">
-              <h2 className="text-sm font-semibold text-foreground">Weekly Check-in Questions</h2>
+              <h2 className="text-sm font-semibold text-foreground">Weekly Pulse Questions</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                These 26 questions are the recurring wellbeing indicators the model uses to track change over time.
+                {`These ${questionBankStats.weekly} fast-moving questions drive the weekly trend and flagging logic.`}
               </p>
             </div>
             <div className="space-y-3 max-h-[72vh] overflow-y-auto pr-1">
               {weeklyQuestions.map((item) => (
+                <QuestionRow key={item.feature} item={item} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60">
+          <CardContent className="p-5">
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-foreground">Monthly Refresh Questions</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                {`These ${questionBankStats.monthly} slower-changing questions add fuller context without repeating them every week.`}
+              </p>
+            </div>
+            <div className="space-y-3 max-h-[72vh] overflow-y-auto pr-1">
+              {monthlyQuestions.map((item) => (
                 <QuestionRow key={item.feature} item={item} />
               ))}
             </div>

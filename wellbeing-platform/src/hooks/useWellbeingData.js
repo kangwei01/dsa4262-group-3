@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  authenticateStudentProfile,
   getDefaultStudent,
   getLatestCheckInByStudentId,
-  getOrCreateStudentByIdentifier,
   getStudentById,
   getStudentByIdentifier,
+  listStudentCheckInsByStudentId,
+  listTeacherActionsByStudentId,
   listStudents,
   logTeacherAction,
+  openSurveyForStudent,
   submitStudentCheckIn,
 } from '@/services/wellbeingService';
 import {
@@ -86,7 +89,7 @@ export function useResolveStudentIdentifier() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: getOrCreateStudentByIdentifier,
+    mutationFn: authenticateStudentProfile,
     onSuccess: (student) => {
       if (!student?.student_identifier) return;
       queryClient.invalidateQueries({ queryKey: ['students'] });
@@ -104,6 +107,22 @@ export function useLatestStudentCheckIn(studentId) {
   });
 }
 
+export function useStudentCheckIns(studentId) {
+  return useQuery({
+    queryKey: ['student-checkins', studentId],
+    queryFn: () => listStudentCheckInsByStudentId(studentId),
+    enabled: Boolean(studentId),
+  });
+}
+
+export function useTeacherActions(studentId) {
+  return useQuery({
+    queryKey: ['teacher-actions', studentId],
+    queryFn: () => listTeacherActionsByStudentId(studentId),
+    enabled: Boolean(studentId),
+  });
+}
+
 export function useSubmitStudentCheckIn() {
   const queryClient = useQueryClient();
 
@@ -114,6 +133,7 @@ export function useSubmitStudentCheckIn() {
       queryClient.invalidateQueries({ queryKey: ['students', variables.studentId] });
       queryClient.invalidateQueries({ queryKey: ['students', 'default'] });
       queryClient.invalidateQueries({ queryKey: ['student-checkins', 'latest', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['student-checkins', variables.studentId] });
       if (result?.student?.student_identifier) {
         queryClient.setQueryData(['students', 'identifier', result.student.student_identifier], result.student);
       }
@@ -129,6 +149,23 @@ export function useLogTeacherAction() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: ['students', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions', variables.studentId] });
+    },
+  });
+}
+
+export function useOpenStudentSurvey() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: openSurveyForStudent,
+    onSuccess: (student, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['students', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions', variables.studentId] });
+      if (student?.student_identifier) {
+        queryClient.setQueryData(['students', 'identifier', student.student_identifier], student);
+      }
     },
   });
 }

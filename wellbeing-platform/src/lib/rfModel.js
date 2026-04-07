@@ -140,7 +140,7 @@ const featureDefinitions = [
     category: 'physical',
     cadence: 'weekly',
     importance: 0.22097917769986825,
-    question: 'Thinking about physical discomfort over the last 6 months, how often have you had issues like headaches, stomachaches, backaches, or dizziness?',
+    question: 'In the past 7 days, how often have headaches, stomachaches, backaches, or dizziness been bothering you?',
     sourceCols: ['headache', 'stomachache', 'backache', 'dizzy'],
     isGroupedComposite: true,
     groupedFrom: ['Headache', 'Stomach ache', 'Back ache', 'Feeling dizzy'],
@@ -153,7 +153,7 @@ const featureDefinitions = [
     category: 'physical',
     cadence: 'weekly',
     importance: 0.14510530393910856,
-    question: 'In the last 6 months, how often have you had difficulties in sleeping?',
+    question: 'In the past 7 days, how often has it been hard for you to fall asleep or stay asleep?',
     sourceCols: ['sleepdificulty'],
     aggregationMethod: 'raw',
     supportKey: 'sleep_recovery',
@@ -162,9 +162,9 @@ const featureDefinitions = [
     feature: 'health',
     label: 'Self-rated health',
     category: 'physical',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.06676630767142021,
-    question: 'Would you say your health is...?',
+    question: 'Over the past 4 weeks, how has your overall health felt?',
     sourceCols: ['health'],
     aggregationMethod: 'raw',
     supportKey: 'general_health',
@@ -173,9 +173,9 @@ const featureDefinitions = [
     feature: 'grp_fam_sup',
     label: 'Family emotional support',
     category: 'family',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.05760702829951625,
-    question: 'How supported do you feel by your family when you need emotional help or someone to talk to?',
+    question: 'Over the past 4 weeks, when you needed it, how supported have you felt by your family emotionally or through being able to talk things through?',
     sourceCols: ['famsup', 'famtalk'],
     isGroupedComposite: true,
     groupedFrom: ['Get emotional help from family', 'Talk about problems with family'],
@@ -188,7 +188,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'weekly',
     importance: 0.04139347092609204,
-    question: 'How pressured do you feel by the schoolwork you have to do?',
+    question: 'In the past 7 days, how much has schoolwork felt like pressure in your life?',
     sourceCols: ['schoolpressure'],
     aggregationMethod: 'raw',
     supportKey: 'school_pressure',
@@ -197,9 +197,9 @@ const featureDefinitions = [
     feature: 'grp_talk_father',
     label: 'Talking to father',
     category: 'family',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.03761582386316818,
-    question: 'How easy is it for you to talk to your father about things that really bother you?',
+    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it have been to talk to your father about it?',
     sourceCols: ['talkfather'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -243,7 +243,7 @@ const featureDefinitions = [
     category: 'digital',
     cadence: 'weekly',
     importance: 0.02056025326106545,
-    question: 'During the past year, have you often used social media to escape from negative feelings?',
+    question: 'In the past 7 days, did you turn to social media to escape negative feelings at least once?',
     sourceCols: ['emcsocmed8'],
     aggregationMethod: 'raw',
     supportKey: 'online_habits',
@@ -278,9 +278,9 @@ const featureDefinitions = [
     feature: 'grp_talk_mother',
     label: 'Talking to mother',
     category: 'family',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.020023417541704263,
-    question: 'How easy is it for you to talk to your mother about things that really bother you?',
+    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it have been to talk to your mother about it?',
     sourceCols: ['talkmother'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -291,7 +291,7 @@ const featureDefinitions = [
     category: 'digital',
     cadence: 'weekly',
     importance: 0.01993633854289729,
-    question: 'Compared with face-to-face conversations, how much easier does it feel to share secrets, feelings, or concerns online?',
+    question: 'It feels easier to share secrets, feelings, or worries online than face to face.',
     sourceCols: ['emconlpref1', 'emconlpref2', 'emconlpref3'],
     isGroupedComposite: true,
     groupedFrom: ['Secrets are easier to discuss online', 'Feelings are easier to discuss online', 'Concerns are easier to discuss online'],
@@ -315,9 +315,9 @@ const featureDefinitions = [
     feature: 'studaccept',
     label: 'Peer acceptance',
     category: 'school',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.018861629132989353,
-    question: 'Other students accept me as I am.',
+    question: 'Over the past 4 weeks, how accepted have you felt by other students?',
     sourceCols: ['studaccept'],
     aggregationMethod: 'raw',
     supportKey: 'school_belonging',
@@ -328,7 +328,7 @@ const featureDefinitions = [
     category: 'peer',
     cadence: 'weekly',
     importance: 0.018522833974363703,
-    question: 'How much do you feel you can rely on your friends when things go wrong or when you need to talk?',
+    question: 'I have friends I can count on and talk to when something is bothering me.',
     sourceCols: ['friendcounton', 'friendtalk'],
     isGroupedComposite: true,
     groupedFrom: ['Can count on friends', 'Can talk about problems with friends'],
@@ -350,9 +350,9 @@ const featureDefinitions = [
     feature: 'likeschool',
     label: 'Liking school',
     category: 'school',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.017613688432021598,
-    question: 'How do you feel about school at present?',
+    question: 'Over the past 4 weeks, how has school generally felt for you?',
     sourceCols: ['likeschool'],
     aggregationMethod: 'raw',
     supportKey: 'school_belonging',
@@ -376,7 +376,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'weekly',
     importance: 0.016240873573690112,
-    question: 'Overall, how cared for and accepted do you feel by your teachers?',
+    question: 'My teachers care about me and accept me as I am.',
     sourceCols: ['teacheraccept', 'teachercare'],
     isGroupedComposite: true,
     groupedFrom: ['Teacher accepts me', 'Teacher cares about me'],
@@ -389,7 +389,7 @@ const featureDefinitions = [
     category: 'peer',
     cadence: 'weekly',
     importance: 0.016068146901689083,
-    question: 'In the past couple of months, how often have you experienced bullying, whether in school or online?',
+    question: 'In the past 7 days, how often have you been bullied or targeted, whether in school or online?',
     sourceCols: ['beenbullied', 'cbeenbullied'],
     isGroupedComposite: true,
     groupedFrom: ['Been bullied at school', 'Been cyberbullied'],
@@ -433,9 +433,9 @@ const featureDefinitions = [
     feature: 'studhelpful',
     label: 'Helpful classmates',
     category: 'school',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.012873520300571173,
-    question: 'Most of the students in my class are kind and helpful.',
+    question: 'Over the past 4 weeks, how kind and helpful have your classmates been?',
     sourceCols: ['studhelpful'],
     aggregationMethod: 'raw',
     supportKey: 'school_belonging',
@@ -497,6 +497,22 @@ const featureDefinitions = [
   },
 ];
 
+const selectedFeatureImportances = {
+  grp_aches: 0.363368,
+  sleepdificulty: 0.229028,
+  health: 0.088985,
+  schoolpressure: 0.075036,
+  grp_fam_sup: 0.055058,
+  grp_talk_father: 0.047937,
+  emcsocmed8: 0.035994,
+  studaccept: 0.020524,
+  grp_been_bullied: 0.019712,
+  grp_talk_mother: 0.019633,
+  likeschool: 0.017041,
+  sex: 0.015609,
+  studhelpful: 0.012077,
+};
+
 export const categoryLabels = {
   baseline: 'Asked once',
   physical: 'Physical wellbeing',
@@ -508,12 +524,26 @@ export const categoryLabels = {
   self_image: 'Body image',
 };
 
+export const cadenceLabels = {
+  one_time: 'Asked once',
+  weekly: 'Weekly pulse',
+  monthly: 'Monthly refresh',
+};
+
 const symptomFrequencyOptions = [
-  { value: 1, label: 'About every day' },
-  { value: 2, label: 'More than once a week' },
-  { value: 3, label: 'About every week' },
-  { value: 4, label: 'About every month' },
-  { value: 5, label: 'Rarely or never' },
+  { value: 5, label: 'Never' },
+  { value: 4, label: 'Once this week' },
+  { value: 3, label: 'A few times this week' },
+  { value: 2, label: 'Every day' },
+  { value: 1, label: 'A few times a day' },
+];
+
+const sleepDifficultyOptions = [
+  { value: 5, label: 'Never' },
+  { value: 4, label: '1 night' },
+  { value: 3, label: 'A few nights' },
+  { value: 2, label: 'Most nights' },
+  { value: 1, label: 'Every night' },
 ];
 
 const agreementOptions = [
@@ -533,42 +563,68 @@ const schoolSupportOptions = [
 ];
 
 const familyFriendSupportOptions = [
-  { value: 1, label: 'Very strongly disagree' },
-  { value: 2, label: 'Strongly disagree' },
-  { value: 3, label: 'Disagree' },
-  { value: 4, label: 'Neither agree nor disagree' },
-  { value: 5, label: 'Agree' },
-  { value: 6, label: 'Strongly agree' },
   { value: 7, label: 'Very strongly agree' },
+  { value: 6, label: 'Strongly agree' },
+  { value: 5, label: 'Agree' },
+  { value: 4, label: 'Neither agree nor disagree' },
+  { value: 3, label: 'Disagree' },
+  { value: 2, label: 'Strongly disagree' },
+  { value: 1, label: 'Very strongly disagree' },
+];
+
+const familySupportOptions = [
+  { value: 7, label: 'Very supported' },
+  { value: 6, label: 'Supported' },
+  { value: 5, label: 'Somewhat supported' },
+  { value: 4, label: 'Mixed' },
+  { value: 3, label: 'A little unsupported' },
+  { value: 2, label: 'Unsupported' },
+  { value: 1, label: 'Very unsupported' },
 ];
 
 const easeTalkOptions = [
   { value: 1, label: 'Very easy' },
-  { value: 2, label: 'Easy' },
-  { value: 3, label: 'Difficult' },
-  { value: 4, label: 'Very difficult' },
-  { value: 5, label: "Don't have or see this person" },
+  { value: 2, label: 'Quite easy' },
+  { value: 3, label: 'In between' },
+  { value: 4, label: 'Quite hard' },
+  { value: 5, label: 'Very hard or not possible' },
 ];
 
 const schoolPressureOptions = [
   { value: 1, label: 'Not at all' },
   { value: 2, label: 'A little' },
-  { value: 3, label: 'Some' },
+  { value: 3, label: 'Quite a bit' },
   { value: 4, label: 'A lot' },
 ];
 
 const healthOptions = [
-  { value: 1, label: 'Excellent' },
+  { value: 1, label: 'Very good' },
   { value: 2, label: 'Good' },
-  { value: 3, label: 'Fair' },
+  { value: 3, label: 'Not so good' },
   { value: 4, label: 'Poor' },
 ];
 
 const schoolLikeOptions = [
-  { value: 1, label: 'I like it a lot' },
-  { value: 2, label: 'I like it a bit' },
-  { value: 3, label: "I don't like it very much" },
-  { value: 4, label: "I don't like it at all" },
+  { value: 1, label: 'Very positive' },
+  { value: 2, label: 'Mostly okay' },
+  { value: 3, label: 'Mostly difficult' },
+  { value: 4, label: 'Very difficult' },
+];
+
+const peerAcceptanceOptions = [
+  { value: 1, label: 'Very accepted' },
+  { value: 2, label: 'Mostly accepted' },
+  { value: 3, label: 'In between' },
+  { value: 4, label: 'Often left out' },
+  { value: 5, label: 'Not accepted at all' },
+];
+
+const classroomHelpfulnessOptions = [
+  { value: 1, label: 'Very kind and helpful' },
+  { value: 2, label: 'Mostly kind and helpful' },
+  { value: 3, label: 'Mixed' },
+  { value: 4, label: 'Often unhelpful' },
+  { value: 5, label: 'Not kind or helpful at all' },
 ];
 
 const bodyImageOptions = [
@@ -583,6 +639,8 @@ const daysOptions = Array.from({ length: 8 }, (_, index) => ({
   value: index,
   label: `${index} day${index === 1 ? '' : 's'}`,
 }));
+
+const descendingDaysOptions = [...daysOptions].reverse();
 
 const holidaysOptions = [
   { value: 1, label: 'Not at all' },
@@ -600,6 +658,8 @@ const weeklyFoodFrequencyOptions = [
   { value: 6, label: 'Once every day' },
   { value: 7, label: 'Every day, more than once' },
 ];
+
+const weeklyHealthyFoodFrequencyOptions = [...weeklyFoodFrequencyOptions].reverse();
 
 const familyMealsOptions = [
   { value: 1, label: 'Every day' },
@@ -620,11 +680,11 @@ const vigorousExerciseOptions = [
 ];
 
 const bullyingOptions = [
-  { value: 1, label: 'I have not been bullied' },
-  { value: 2, label: 'Once or twice' },
-  { value: 3, label: '2 or 3 times a month' },
-  { value: 4, label: 'About once a week' },
-  { value: 5, label: 'Several times a week' },
+  { value: 1, label: 'Not at all' },
+  { value: 2, label: 'Once' },
+  { value: 3, label: 'A few times' },
+  { value: 4, label: 'On most days' },
+  { value: 5, label: 'Every day or more' },
 ];
 
 const onlineContactOptions = [
@@ -637,8 +697,8 @@ const onlineContactOptions = [
 ];
 
 const yesNoOptions = [
-  { value: 1, label: 'No' },
-  { value: 2, label: 'Yes' },
+  { value: 1, label: 'No, not at all' },
+  { value: 2, label: 'Yes, at least once' },
 ];
 
 const sexOptions = [
@@ -658,7 +718,7 @@ const featureResponseMeta = {
   },
   sleepdificulty: {
     responseType: 'choice',
-    options: symptomFrequencyOptions,
+    options: sleepDifficultyOptions,
     min: 1,
     max: 5,
     riskDirection: 'lower',
@@ -676,7 +736,7 @@ const featureResponseMeta = {
   },
   grp_fam_sup: {
     responseType: 'choice',
-    options: familyFriendSupportOptions,
+    options: familySupportOptions,
     min: 1,
     max: 7,
     riskDirection: 'lower',
@@ -781,7 +841,7 @@ const featureResponseMeta = {
   },
   grp_fruits: {
     responseType: 'choice',
-    options: weeklyFoodFrequencyOptions,
+    options: weeklyHealthyFoodFrequencyOptions,
     min: 1,
     max: 7,
     riskDirection: 'lower',
@@ -790,7 +850,7 @@ const featureResponseMeta = {
   },
   studaccept: {
     responseType: 'choice',
-    options: schoolSupportOptions,
+    options: peerAcceptanceOptions,
     min: 1,
     max: 5,
     riskDirection: 'higher',
@@ -808,7 +868,7 @@ const featureResponseMeta = {
   },
   physact60: {
     responseType: 'choice',
-    options: daysOptions,
+    options: descendingDaysOptions,
     min: 0,
     max: 7,
     riskDirection: 'lower',
@@ -826,7 +886,7 @@ const featureResponseMeta = {
   },
   grp_bfast: {
     responseType: 'choice',
-    options: daysOptions,
+    options: descendingDaysOptions,
     min: 0,
     max: 7,
     riskDirection: 'lower',
@@ -879,7 +939,7 @@ const featureResponseMeta = {
   },
   studhelpful: {
     responseType: 'choice',
-    options: schoolSupportOptions,
+    options: classroomHelpfulnessOptions,
     min: 1,
     max: 5,
     riskDirection: 'higher',
@@ -930,31 +990,57 @@ const featureResponseMeta = {
   },
 };
 
-export const DISTRESS_THRESHOLD = 35;
-export const HIGH_DISTRESS_THRESHOLD = 60;
+export const MONITOR_THRESHOLD = 47.54;
+export const FLAG_THRESHOLD = 58.07;
+export const DISTRESS_THRESHOLD = MONITOR_THRESHOLD;
+export const HIGH_DISTRESS_THRESHOLD = FLAG_THRESHOLD;
 
-export const rfQuestionBank = featureDefinitions
-  .slice()
-  .sort((a, b) => b.importance - a.importance)
+const allQuestionDefinitions = featureDefinitions.map((feature) => ({
+  ...feature,
+  ...featureResponseMeta[feature.feature],
+  categoryLabel: categoryLabels[feature.category] || feature.category,
+}));
+
+export const rfQuestionBank = allQuestionDefinitions
+  .filter((feature) => selectedFeatureImportances[feature.feature] !== undefined)
   .map((feature) => ({
     ...feature,
-    ...featureResponseMeta[feature.feature],
-    categoryLabel: categoryLabels[feature.category] || feature.category,
+    importance: selectedFeatureImportances[feature.feature],
   }));
 
 export const rfQuestionLookup = Object.fromEntries(
   rfQuestionBank.map((feature) => [feature.feature, feature]),
 );
 
+const allFeatureLookup = Object.fromEntries(
+  allQuestionDefinitions.map((feature) => [feature.feature, feature]),
+);
+
 const featureLabelLookup = Object.fromEntries(
-  rfQuestionBank.map((feature) => [feature.label.toLowerCase(), feature]),
+  allQuestionDefinitions.map((feature) => [feature.label.toLowerCase(), feature]),
+);
+
+const categoryDisplayOrder = {
+  baseline: 0,
+  physical: 1,
+  habits: 2,
+  school: 3,
+  peer: 4,
+  family: 5,
+  digital: 6,
+  self_image: 7,
+};
+
+const featureDisplayOrder = Object.fromEntries(
+  featureDefinitions.map((feature, index) => [feature.feature, index]),
 );
 
 function sortQuestionsForDisplay(questions = []) {
   return questions
     .slice()
     .sort((a, b) => (
-      (a.categoryLabel || '').localeCompare(b.categoryLabel || '')
+      (categoryDisplayOrder[a.category] ?? 99) - (categoryDisplayOrder[b.category] ?? 99)
+      || (featureDisplayOrder[a.feature] ?? 999) - (featureDisplayOrder[b.feature] ?? 999)
       || (a.label || '').localeCompare(b.label || '')
     ));
 }
@@ -965,11 +1051,18 @@ export const oneTimeQuestions = sortQuestionsForDisplay(
 export const weeklyQuestions = sortQuestionsForDisplay(
   rfQuestionBank.filter((feature) => feature.cadence === 'weekly'),
 );
+export const monthlyQuestions = sortQuestionsForDisplay(
+  rfQuestionBank.filter((feature) => feature.cadence === 'monthly'),
+);
+export const recurringQuestions = sortQuestionsForDisplay(
+  rfQuestionBank.filter((feature) => feature.cadence !== 'one_time'),
+);
 
 export const questionBankStats = {
   total: rfQuestionBank.length,
   oneTime: oneTimeQuestions.length,
   weekly: weeklyQuestions.length,
+  monthly: monthlyQuestions.length,
   groupedComposite: rfQuestionBank.filter((feature) => feature.isGroupedComposite).length,
   byCategory: Object.entries(
     rfQuestionBank.reduce((acc, feature) => {
@@ -986,7 +1079,7 @@ export const questionBankStats = {
 };
 
 export function getFeatureById(featureId) {
-  return rfQuestionLookup[featureId] || null;
+  return rfQuestionLookup[featureId] || allFeatureLookup[featureId] || null;
 }
 
 export function getFeatureByLabel(label) {
@@ -1022,7 +1115,7 @@ function hasLegacyCheckInFields(answers = {}) {
 }
 
 function hasRfFeatureAnswers(answers = {}) {
-  return weeklyQuestions.some((feature) => (
+  return recurringQuestions.some((feature) => (
     answers[feature.feature] !== undefined && answers[feature.feature] !== null && answers[feature.feature] !== ''
   ));
 }
@@ -1155,7 +1248,7 @@ export function deriveSignalsFromCheckInAnswers(answers = {}) {
       });
   }
 
-  return weeklyQuestions
+  return recurringQuestions
     .map((feature) => {
       const risk = getFeatureRiskContribution(feature, answers[feature.feature]);
       if (risk === null || risk < 0.64) return null;
@@ -1177,7 +1270,7 @@ export function deriveSignalsFromCheckInAnswers(answers = {}) {
 export function deriveStrengthHighlights(answers = {}, limit = 2) {
   if (!hasRfFeatureAnswers(answers)) return [];
 
-  return weeklyQuestions
+  return recurringQuestions
     .map((feature) => {
       const risk = getFeatureRiskContribution(feature, answers[feature.feature]);
       if (risk === null || risk > 0.32) return null;
@@ -1305,8 +1398,8 @@ export function buildKeyFactorsFromCheckInAnswers(answers = {}) {
 }
 
 export function deriveRiskLevel(score) {
-  if (score >= HIGH_DISTRESS_THRESHOLD) return 'high';
-  if (score >= DISTRESS_THRESHOLD) return 'medium';
+  if (score >= FLAG_THRESHOLD) return 'high';
+  if (score >= MONITOR_THRESHOLD) return 'medium';
   return 'low';
 }
 
@@ -1330,45 +1423,44 @@ export function getRecommendedAction(student) {
   const streak = getConsecutiveDistressWeeks(student.weekly_scores || []);
   const recentScores = (student.weekly_scores || []).slice(-3).map((week) => `${week.week} ${week.score}`).join(' → ');
   const factors = (student.key_factors || []).map((item) => item.factor).join(', ') || 'no dominant feature cluster';
+  const score = Number(student.risk_score || 0);
 
-  if ((student.risk_score || 0) >= HIGH_DISTRESS_THRESHOLD) {
+  if (score >= FLAG_THRESHOLD && streak >= 3) {
     return {
-      action: 'Refer to Counsellor',
+      action: 'Review for Escalation',
       urgency: 'urgent',
-      description: streak >= 3
-        ? `Latest score ${student.risk_score}/100 with ${streak} consecutive weeks in the distress range. Recent trajectory: ${recentScores}. Key factors: ${factors}.`
-        : `Latest score ${student.risk_score}/100 is already in the high-risk range. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
+      description: `The student is both flagged this week and has a sustained pattern across ${streak} consecutive monitored weeks. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
+    };
+  }
+
+  if (score >= FLAG_THRESHOLD) {
+    return {
+      action: 'Check in Privately',
+      urgency: 'soon',
+      description: `The latest score is in the flagged band (${FLAG_THRESHOLD.toFixed(2)}+). Start with a supportive private check-in and review whether further escalation is needed. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
     };
   }
 
   if (streak >= 3) {
     return {
-      action: 'Schedule Check-in',
+      action: 'Review in 2 Weeks',
       urgency: 'soon',
-      description: `Three-week distress flag active (${streak} consecutive weeks at ${DISTRESS_THRESHOLD}+). Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
+      description: `The student has stayed in the monitoring band for ${streak} consecutive weeks. Follow up intentionally rather than treating it as a one-off. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
     };
   }
 
-  if (student.risk_level === 'medium' && student.trend === 'worsening') {
+  if (score >= MONITOR_THRESHOLD || (student.risk_level === 'medium' && student.trend === 'worsening')) {
     return {
-      action: 'Schedule Check-in',
-      urgency: 'soon',
-      description: `Score is rising week on week even without an active 3-week flag. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
-    };
-  }
-
-  if (student.risk_level === 'medium') {
-    return {
-      action: 'Monitor',
+      action: 'Monitor for 2 Weeks',
       urgency: 'normal',
-      description: 'Moderate signal level but no active 3-week distress streak. Continue weekly monitoring and review any new changes quickly.',
+      description: `The student is in the monitoring band (${MONITOR_THRESHOLD.toFixed(2)}+) or showing an upward trend. Keep the student on watch, and review the pattern again in two weeks. Key factors: ${factors}.`,
     };
   }
 
   return {
-    action: 'Continue Monitoring',
+    action: 'Continue Routine Support',
     urgency: 'low',
-    description: 'Student responses are currently below the distress threshold and do not show a sustained three-week streak.',
+    description: 'Student responses are currently below the monitoring threshold and do not show a sustained concerning pattern.',
   };
 }
 

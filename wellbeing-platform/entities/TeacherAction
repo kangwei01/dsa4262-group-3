@@ -9,6 +9,7 @@
     "action_type": {
       "type": "string",
       "enum": [
+        "open_survey",
         "monitor",
         "check_in",
         "refer_counsellor",
@@ -39,6 +40,18 @@
     "referral_summary": {
       "type": "string",
       "description": "Auto-generated summary for referral"
+    },
+    "follow_up_due_at": {
+      "type": "string",
+      "description": "ISO timestamp for the next suggested follow-up"
+    },
+    "generated_parent_message": {
+      "type": "string",
+      "description": "Editable parent communication drafted by the system"
+    },
+    "escalation_payload": {
+      "type": "object",
+      "description": "Structured escalation package containing key signals, trends, and notes"
     },
     "teacher_email": {
       "type": "string",
