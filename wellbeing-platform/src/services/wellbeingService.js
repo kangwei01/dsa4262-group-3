@@ -1,6 +1,7 @@
 import { backendClient } from '@/api/backendClient';
 import { seedStudentProfiles, studentScenarioByName } from '@/data/seed/studentProfiles';
 import { normalizeStudentIdentifier } from '@/lib/studentSession';
+import { buildEscalationPayload, buildParentMessage } from '@/lib/wellbeingContent';
 import {
   buildLegacyCheckInFields,
   buildKeyFactorsFromCheckInAnswers,
@@ -23,6 +24,8 @@ const BACKEND_SOURCE = 'backend';
 const LOCAL_PROFILE_STORAGE_KEY = 'mindbridge_local_student_profiles';
 const LOCAL_CHECKIN_STORAGE_KEY = 'mindbridge_local_student_checkins';
 const LOCAL_TEACHER_ACTION_STORAGE_KEY = 'mindbridge_local_teacher_actions';
+const LOCAL_COUNSELLOR_CASE_STORAGE_KEY = 'mindbridge_local_counsellor_cases';
+const LOCAL_PARENT_COMM_STORAGE_KEY = 'mindbridge_local_parent_communications';
 
 function readLocalCollection(storageKey) {
   const storage = getStorage();
@@ -267,6 +270,31 @@ function normalizeTeacherAction(action = {}, source = BACKEND_SOURCE) {
   };
 }
 
+function normalizeCounsellorCase(record = {}, source = BACKEND_SOURCE) {
+  return {
+    ...record,
+    source,
+    status: record.status || 'pending_review',
+    payload: record.payload || null,
+    parent_message: record.parent_message || '',
+    created_at: record.created_at || record.updated_at || new Date().toISOString(),
+  };
+}
+
+function normalizeParentCommunication(record = {}, source = BACKEND_SOURCE) {
+  return {
+    ...record,
+    source,
+    status: record.status || 'draft',
+    subject: record.subject || 'Wellbeing support update',
+    message: record.message || '',
+    linked_case_id: record.linked_case_id || null,
+    scheduled_for: record.scheduled_for || null,
+    sent_at: record.sent_at || null,
+    created_at: record.created_at || record.updated_at || new Date().toISOString(),
+  };
+}
+
 function listLocalTeacherActions(studentId) {
   return readLocalCollection(LOCAL_TEACHER_ACTION_STORAGE_KEY)
     .filter((action) => action.student_id === studentId)
@@ -278,6 +306,46 @@ function appendLocalTeacherAction(action) {
   actions.push(action);
   writeLocalCollection(LOCAL_TEACHER_ACTION_STORAGE_KEY, actions);
   return normalizeTeacherAction(action, FALLBACK_SOURCE);
+}
+
+function listLocalCounsellorCases() {
+  return readLocalCollection(LOCAL_COUNSELLOR_CASE_STORAGE_KEY)
+    .map((record) => normalizeCounsellorCase(record, FALLBACK_SOURCE));
+}
+
+function appendLocalCounsellorCase(record) {
+  const cases = readLocalCollection(LOCAL_COUNSELLOR_CASE_STORAGE_KEY);
+  cases.push(record);
+  writeLocalCollection(LOCAL_COUNSELLOR_CASE_STORAGE_KEY, cases);
+  return normalizeCounsellorCase(record, FALLBACK_SOURCE);
+}
+
+function upsertLocalCounsellorCase(record) {
+  const cases = readLocalCollection(LOCAL_COUNSELLOR_CASE_STORAGE_KEY);
+  const nextCases = cases.filter((item) => item.id !== record.id);
+  nextCases.push(record);
+  writeLocalCollection(LOCAL_COUNSELLOR_CASE_STORAGE_KEY, nextCases);
+  return normalizeCounsellorCase(record, FALLBACK_SOURCE);
+}
+
+function listLocalParentCommunications() {
+  return readLocalCollection(LOCAL_PARENT_COMM_STORAGE_KEY)
+    .map((record) => normalizeParentCommunication(record, FALLBACK_SOURCE));
+}
+
+function appendLocalParentCommunication(record) {
+  const messages = readLocalCollection(LOCAL_PARENT_COMM_STORAGE_KEY);
+  messages.push(record);
+  writeLocalCollection(LOCAL_PARENT_COMM_STORAGE_KEY, messages);
+  return normalizeParentCommunication(record, FALLBACK_SOURCE);
+}
+
+function upsertLocalParentCommunication(record) {
+  const messages = readLocalCollection(LOCAL_PARENT_COMM_STORAGE_KEY);
+  const nextMessages = messages.filter((item) => item.id !== record.id);
+  nextMessages.push(record);
+  writeLocalCollection(LOCAL_PARENT_COMM_STORAGE_KEY, nextMessages);
+  return normalizeParentCommunication(record, FALLBACK_SOURCE);
 }
 
 function listLocalStudentCheckIns(studentId) {
@@ -385,6 +453,32 @@ export async function getStudentByIdentifier(identifier) {
 
   const students = await listStudents();
   return students.find((student) => normalizeStudentIdentifier(student.student_identifier) === normalized) || null;
+}
+
+function normalizeTeacherEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function filterStudentsForTeacher(students = [], teacherEmail, allowAll = false) {
+  if (allowAll) return students;
+  const normalizedTeacherEmail = normalizeTeacherEmail(teacherEmail);
+  if (!normalizedTeacherEmail) return [];
+  return students.filter((student) => normalizeTeacherEmail(student.assigned_teacher) === normalizedTeacherEmail);
+}
+
+export async function listStudentsForTeacher({ teacherEmail, allowAll = false } = {}) {
+  const students = await listStudents();
+  return filterStudentsForTeacher(students, teacherEmail, allowAll);
+}
+
+export async function getStudentByIdForTeacher({ studentId, teacherEmail, allowAll = false } = {}) {
+  const student = await getStudentById(studentId);
+  if (!student) return null;
+  if (allowAll) return student;
+  if (normalizeTeacherEmail(student.assigned_teacher) !== normalizeTeacherEmail(teacherEmail)) {
+    throw new Error('You do not have access to this student profile.');
+  }
+  return student;
 }
 
 async function findStoredStudentRecordByIdentifier(identifier) {
@@ -536,6 +630,83 @@ export async function listTeacherActionsByStudentId(studentId) {
   } catch (error) {
     console.warn('Unable to load teacher actions from backend:', error);
     return localActions;
+  }
+}
+
+export async function listTeacherActionsForTeacher({ teacherEmail, allowAll = false } = {}) {
+  const students = await listStudentsForTeacher({ teacherEmail, allowAll });
+  const actionLists = await Promise.all(
+    students.map((student) => listTeacherActionsByStudentId(student.id)),
+  );
+
+  return mergeUniqueBy(
+    actionLists.flat(),
+    (item) => item.id || `${item.student_id}-${item.action_type}-${item.created_at || ''}`,
+  ).sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
+}
+
+export async function listFollowUpQueue({ teacherEmail, allowAll = false } = {}) {
+  const students = await listStudentsForTeacher({ teacherEmail, allowAll });
+
+  return students
+    .filter((student) => Boolean(student.next_follow_up_at))
+    .map((student) => ({
+      id: student.id,
+      student_id: student.id,
+      student_name: student.name,
+      teacher_email: student.assigned_teacher,
+      due_at: student.next_follow_up_at,
+      note: student.next_follow_up_note || 'Review wellbeing pattern',
+      risk_level: student.risk_level,
+      risk_score: student.risk_score,
+      trend: student.trend,
+      main_signal: student.key_factors[0]?.factor || 'No dominant signal',
+      overdue: Date.parse(student.next_follow_up_at) <= Date.now(),
+    }))
+    .sort((a, b) => Date.parse(a.due_at || 0) - Date.parse(b.due_at || 0));
+}
+
+export async function listCounsellorCases({ teacherEmail, allowAll = false } = {}) {
+  const localCases = listLocalCounsellorCases();
+  const scopedCases = (cases = []) => (
+    allowAll
+      ? cases
+      : cases.filter((record) => normalizeTeacherEmail(record.teacher_email) === normalizeTeacherEmail(teacherEmail))
+  );
+
+  try {
+    const records = await backendClient.entities.CounsellorCase.list('-created_at', 200);
+    return mergeUniqueBy([
+      ...scopedCases(records).map((record) => normalizeCounsellorCase(record, BACKEND_SOURCE)),
+      ...scopedCases(localCases),
+    ], (item) => item.id || `${item.student_id}-${item.teacher_email}-${item.created_at || ''}`)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
+  } catch (error) {
+    console.warn('Unable to load counsellor cases from backend:', error);
+    return scopedCases(localCases)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
+  }
+}
+
+export async function listParentCommunications({ teacherEmail, allowAll = false } = {}) {
+  const localMessages = listLocalParentCommunications();
+  const scopedMessages = (records = []) => (
+    allowAll
+      ? records
+      : records.filter((record) => normalizeTeacherEmail(record.teacher_email) === normalizeTeacherEmail(teacherEmail))
+  );
+
+  try {
+    const records = await backendClient.entities.ParentCommunication.list('-created_at', 200);
+    return mergeUniqueBy([
+      ...scopedMessages(records).map((record) => normalizeParentCommunication(record, BACKEND_SOURCE)),
+      ...scopedMessages(localMessages),
+    ], (item) => item.id || `${item.student_id}-${item.teacher_email}-${item.created_at || ''}`)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
+  } catch (error) {
+    console.warn('Unable to load parent communications from backend:', error);
+    return scopedMessages(localMessages)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
   }
 }
 
@@ -845,6 +1016,30 @@ export async function openSurveyForStudent({
   }
 }
 
+export async function openSurveysForStudents({
+  studentIds = [],
+  surveyType = 'weekly',
+  teacherEmail = 'wellbeing@school.edu',
+  notes,
+}) {
+  const uniqueIds = [...new Set((studentIds || []).filter(Boolean))];
+  const updatedStudents = [];
+
+  for (const studentId of uniqueIds) {
+    const updatedStudent = await openSurveyForStudent({
+      studentId,
+      surveyType,
+      teacherEmail,
+      notes,
+    });
+    if (updatedStudent) {
+      updatedStudents.push(updatedStudent);
+    }
+  }
+
+  return updatedStudents;
+}
+
 export async function logTeacherAction({
   studentId,
   actionType,
@@ -936,4 +1131,184 @@ export async function logTeacherAction({
   }
 
   return action;
+}
+
+export async function createParentCommunication({
+  studentId,
+  teacherEmail,
+  message,
+  subject = 'Wellbeing support update',
+  status = 'ready_to_send',
+  linkedCaseId = null,
+  scheduledFor = null,
+}) {
+  const student = await getStudentById(studentId);
+  const record = {
+    id: `parent_${studentId}_${Date.now()}`,
+    student_id: studentId,
+    student_name: student?.name || 'Student',
+    teacher_email: teacherEmail,
+    status,
+    subject,
+    message,
+    linked_case_id: linkedCaseId,
+    scheduled_for: scheduledFor,
+    sent_at: status === 'sent' ? new Date().toISOString() : null,
+  };
+
+  try {
+    const created = await backendClient.entities.ParentCommunication.create({
+      student_id: record.student_id,
+      student_name: record.student_name,
+      teacher_email: record.teacher_email,
+      status: record.status,
+      subject: record.subject,
+      message: record.message,
+      linked_case_id: record.linked_case_id,
+      scheduled_for: record.scheduled_for,
+      sent_at: record.sent_at,
+    });
+    return normalizeParentCommunication(created, BACKEND_SOURCE);
+  } catch (error) {
+    console.warn('Unable to create parent communication in backend:', error);
+    return appendLocalParentCommunication(record);
+  }
+}
+
+export async function updateParentCommunicationStatus({
+  communicationId,
+  status,
+}) {
+  const nextStatus = status === 'sent' ? 'sent' : status === 'ready_to_send' ? 'ready_to_send' : 'draft';
+  const sentAt = nextStatus === 'sent' ? new Date().toISOString() : null;
+
+  try {
+    const updated = await backendClient.entities.ParentCommunication.update(communicationId, {
+      status: nextStatus,
+      sent_at: sentAt,
+    });
+    return normalizeParentCommunication(updated, BACKEND_SOURCE);
+  } catch (error) {
+    const existing = listLocalParentCommunications().find((record) => record.id === communicationId);
+    if (!existing) throw error;
+    return upsertLocalParentCommunication({
+      ...existing,
+      status: nextStatus,
+      sent_at: sentAt,
+    });
+  }
+}
+
+export async function updateCounsellorCaseStatus({
+  caseId,
+  status,
+}) {
+  const nextStatus = ['pending_review', 'acknowledged', 'closed'].includes(status)
+    ? status
+    : 'pending_review';
+
+  try {
+    const updated = await backendClient.entities.CounsellorCase.update(caseId, {
+      status: nextStatus,
+    });
+    return normalizeCounsellorCase(updated, BACKEND_SOURCE);
+  } catch (error) {
+    const existing = listLocalCounsellorCases().find((record) => record.id === caseId);
+    if (!existing) throw error;
+    return upsertLocalCounsellorCase({
+      ...existing,
+      status: nextStatus,
+    });
+  }
+}
+
+export async function createCounsellorCase({
+  studentId,
+  teacherEmail,
+  additionalNotes = '',
+  parentContact = false,
+  parentMessage = '',
+  createdByRole = 'teacher',
+}) {
+  const student = await getStudentById(studentId);
+  if (!student) {
+    throw new Error('Student profile not found for escalation.');
+  }
+
+  const [checkIns, actions] = await Promise.all([
+    listStudentCheckInsByStudentId(studentId),
+    listTeacherActionsByStudentId(studentId),
+  ]);
+
+  const payload = {
+    ...buildEscalationPayload(student, additionalNotes),
+    student_check_ins: checkIns,
+    teacher_actions: actions,
+  };
+  const summary = `${student.name} flagged for counsellor review with ${student.risk_score}/100 risk score and ${student.key_factors.slice(0, 2).map((item) => item.factor).join(' + ') || 'no single dominant signal'}.`;
+  const caseRecord = {
+    id: `case_${studentId}_${Date.now()}`,
+    student_id: studentId,
+    student_name: student.name,
+    teacher_email: teacherEmail,
+    status: 'pending_review',
+    summary,
+    payload,
+    parent_message: parentContact ? (parentMessage || buildParentMessage(student)) : '',
+    created_by_role: createdByRole,
+  };
+
+  let counsellorCase = null;
+
+  try {
+    const created = await backendClient.entities.CounsellorCase.create({
+      student_id: caseRecord.student_id,
+      student_name: caseRecord.student_name,
+      teacher_email: caseRecord.teacher_email,
+      status: caseRecord.status,
+      summary: caseRecord.summary,
+      payload: caseRecord.payload,
+      parent_message: caseRecord.parent_message,
+      created_by_role: caseRecord.created_by_role,
+    });
+    counsellorCase = normalizeCounsellorCase(created, BACKEND_SOURCE);
+  } catch (error) {
+    console.warn('Unable to create counsellor case in backend:', error);
+    counsellorCase = appendLocalCounsellorCase(caseRecord);
+  }
+
+  await logTeacherAction({
+    studentId,
+    actionType: 'refer_counsellor',
+    notes: additionalNotes,
+    referralSummary: summary,
+    escalationPayload: payload,
+    completed: true,
+    teacherEmail,
+  });
+
+  let parentCommunication = null;
+  if (parentContact) {
+    const message = parentMessage || buildParentMessage(student);
+    parentCommunication = await createParentCommunication({
+      studentId,
+      teacherEmail,
+      message,
+      linkedCaseId: counsellorCase?.id || null,
+      status: 'ready_to_send',
+    });
+    await logTeacherAction({
+      studentId,
+      actionType: 'parent_contact',
+      notes: 'Parent communication drafted alongside counsellor escalation.',
+      generatedParentMessage: message,
+      completed: true,
+      teacherEmail,
+    });
+  }
+
+  return {
+    counsellorCase,
+    parentCommunication,
+  };
 }

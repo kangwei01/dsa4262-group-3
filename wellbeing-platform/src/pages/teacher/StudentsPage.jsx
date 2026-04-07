@@ -3,13 +3,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
 import StudentCard from '@/components/teacher/StudentCard';
-import { useStudents } from '@/hooks/useWellbeingData';
+import { useTeacherStudents } from '@/hooks/useWellbeingData';
+import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [filterRisk, setFilterRisk] = useState('all');
   const [filterTrend, setFilterTrend] = useState('all');
-  const { data: students = [], isLoading, error } = useStudents();
+  const { teacher } = useTeacherAccess();
+  const { data: students = [], isLoading, error } = useTeacherStudents(teacher);
 
   const filtered = students.filter((student) => {
     const matchSearch = student.name.toLowerCase().includes(search.toLowerCase());
@@ -21,8 +23,10 @@ export default function StudentsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">All Students</h1>
-        <p className="text-sm text-muted-foreground mt-1">Live student wellbeing list from the shared profile store.</p>
+        <h1 className="text-2xl font-semibold text-foreground">My Students</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Teacher-scoped wellbeing list for {teacher?.teacher_identifier || 'the signed-in account'}.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">

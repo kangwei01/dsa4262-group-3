@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, CalendarClock, Check, Copy, MessageSquare, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { useLogTeacherAction, useStudent } from '@/hooks/useWellbeingData';
+import { useLogTeacherAction, useTeacherStudent } from '@/hooks/useWellbeingData';
 import {
   buildFollowUpRecommendation,
   buildTeacherCheckInPrompts,
@@ -16,6 +16,7 @@ import {
   dontTips,
   observeNextTips,
 } from '@/lib/wellbeingContent';
+import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 function buildDefaultFollowUpDate(days) {
   const date = new Date();
@@ -26,7 +27,8 @@ function buildDefaultFollowUpDate(days) {
 export default function GuidedCheckIn() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: student, isLoading } = useStudent(id);
+  const { teacher } = useTeacherAccess();
+  const { data: student, isLoading } = useTeacherStudent(id, teacher);
   const logTeacherAction = useLogTeacherAction();
   const [completed, setCompleted] = useState(true);
   const [notes, setNotes] = useState('');
@@ -55,7 +57,7 @@ export default function GuidedCheckIn() {
       outcome,
       completed,
       followUpDueAt: followUpDate ? new Date(`${followUpDate}T08:00:00`).toISOString() : null,
-      teacherEmail: student.assigned_teacher || 'wellbeing@school.edu',
+      teacherEmail: teacher?.teacher_identifier || student.assigned_teacher || 'wellbeing@school.edu',
     });
     toast.success('Check-in and follow-up plan saved');
     navigate(`/teacher/student/${student.id}`);

@@ -8,15 +8,19 @@ import { ArrowLeft, AlertTriangle, Send, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
-import { useLogTeacherAction, useStudent } from '@/hooks/useWellbeingData';
+import { useCreateCounsellorCase, useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
 import { getConsecutiveDistressWeeks } from '@/lib/rfModel';
-import { buildEscalationPayload, buildParentMessage } from '@/lib/wellbeingContent';
+import { buildParentMessage } from '@/lib/wellbeingContent';
+import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 export default function Escalation() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: student, isLoading } = useStudent(id);
-  const logTeacherAction = useLogTeacherAction();
+  const { teacher } = useTeacherAccess();
+  const { data: student, isLoading } = useTeacherStudent(id, teacher);
+  const { data: checkIns = [] } = useStudentCheckIns(id);
+  const { data: teacherActions = [] } = useTeacherActions(id);
+  const createCounsellorCase = useCreateCounsellorCase();
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [parentContact, setParentContact] = useState(false);
   const [confirmEscalation, setConfirmEscalation] = useState(false);
@@ -41,28 +45,14 @@ export default function Escalation() {
   if (!student) return null;
 
   const handleRefer = async () => {
-    const escalationPayload = buildEscalationPayload(student, additionalNotes);
-
-    await logTeacherAction.mutateAsync({
+    await createCounsellorCase.mutateAsync({
       studentId: student.id,
-      actionType: 'refer_counsellor',
-      notes: additionalNotes,
-      referralSummary: autoSummary,
-      escalationPayload,
-      completed: true,
-      teacherEmail: student.assigned_teacher || 'wellbeing@school.edu',
+      teacherEmail: teacher?.teacher_identifier || student.assigned_teacher || 'wellbeing@school.edu',
+      additionalNotes,
+      parentContact,
+      parentMessage,
+      createdByRole: teacher?.role || 'teacher',
     });
-
-    if (parentContact) {
-      await logTeacherAction.mutateAsync({
-        studentId: student.id,
-        actionType: 'parent_contact',
-        notes: 'Parent communication prepared alongside counsellor escalation.',
-        generatedParentMessage: parentMessage,
-        completed: true,
-        teacherEmail: student.assigned_teacher || 'wellbeing@school.edu',
-      });
-    }
 
     toast.success('Escalation logged successfully');
     navigate(`/teacher/student/${student.id}`);
@@ -101,6 +91,9 @@ export default function Escalation() {
           <div className="bg-secondary/50 rounded-lg p-4">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Escalation summary</h4>
             <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{autoSummary}</pre>
+            <p className="text-[11px] text-muted-foreground mt-3">
+              This handoff will include {checkIns.length} check-ins and {teacherActions.length} teacher actions in the counsellor file.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -155,11 +148,11 @@ export default function Escalation() {
 
       <Button
         onClick={handleRefer}
-        disabled={logTeacherAction.isPending || !confirmEscalation}
+        disabled={createCounsellorCase.isPending || !confirmEscalation}
         className="w-full gap-2"
         variant="destructive"
       >
-        {logTeacherAction.isPending ? (
+        {createCounsellorCase.isPending ? (
           <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
         ) : (
           <Send className="w-4 h-4" />

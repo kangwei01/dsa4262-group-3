@@ -2,16 +2,26 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   authenticateStudentProfile,
+  createCounsellorCase,
   getDefaultStudent,
   getLatestCheckInByStudentId,
   getStudentById,
+  getStudentByIdForTeacher,
   getStudentByIdentifier,
+  listCounsellorCases,
+  listFollowUpQueue,
+  listParentCommunications,
   listStudentCheckInsByStudentId,
+  listStudentsForTeacher,
   listTeacherActionsByStudentId,
+  listTeacherActionsForTeacher,
   listStudents,
   logTeacherAction,
   openSurveyForStudent,
+  openSurveysForStudents,
   submitStudentCheckIn,
+  updateCounsellorCaseStatus,
+  updateParentCommunicationStatus,
 } from '@/services/wellbeingService';
 import {
   clearStoredStudentIdentifier,
@@ -32,6 +42,29 @@ export function useStudent(studentId) {
     queryKey: ['students', studentId],
     queryFn: () => getStudentById(studentId),
     enabled: Boolean(studentId),
+  });
+}
+
+export function useTeacherStudents(teacher) {
+  return useQuery({
+    queryKey: ['teacher-students', teacher?.teacher_identifier, teacher?.role],
+    queryFn: () => listStudentsForTeacher({
+      teacherEmail: teacher?.teacher_identifier,
+      allowAll: Boolean(teacher?.can_view_all_students),
+    }),
+    enabled: Boolean(teacher?.teacher_identifier),
+  });
+}
+
+export function useTeacherStudent(studentId, teacher) {
+  return useQuery({
+    queryKey: ['teacher-students', teacher?.teacher_identifier, teacher?.role, studentId],
+    queryFn: () => getStudentByIdForTeacher({
+      studentId,
+      teacherEmail: teacher?.teacher_identifier,
+      allowAll: Boolean(teacher?.can_view_all_students),
+    }),
+    enabled: Boolean(studentId && teacher?.teacher_identifier),
   });
 }
 
@@ -123,6 +156,50 @@ export function useTeacherActions(studentId) {
   });
 }
 
+export function useTeacherActivityFeed(teacher) {
+  return useQuery({
+    queryKey: ['teacher-actions', 'teacher', teacher?.teacher_identifier, teacher?.role],
+    queryFn: () => listTeacherActionsForTeacher({
+      teacherEmail: teacher?.teacher_identifier,
+      allowAll: Boolean(teacher?.can_view_all_students),
+    }),
+    enabled: Boolean(teacher?.teacher_identifier),
+  });
+}
+
+export function useFollowUpQueue(teacher) {
+  return useQuery({
+    queryKey: ['follow-up-queue', teacher?.teacher_identifier, teacher?.role],
+    queryFn: () => listFollowUpQueue({
+      teacherEmail: teacher?.teacher_identifier,
+      allowAll: Boolean(teacher?.can_view_all_students),
+    }),
+    enabled: Boolean(teacher?.teacher_identifier),
+  });
+}
+
+export function useCounsellorCases(teacher) {
+  return useQuery({
+    queryKey: ['counsellor-cases', teacher?.teacher_identifier, teacher?.role],
+    queryFn: () => listCounsellorCases({
+      teacherEmail: teacher?.teacher_identifier,
+      allowAll: Boolean(teacher?.can_view_all_students),
+    }),
+    enabled: Boolean(teacher?.teacher_identifier),
+  });
+}
+
+export function useParentCommunications(teacher) {
+  return useQuery({
+    queryKey: ['parent-communications', teacher?.teacher_identifier, teacher?.role],
+    queryFn: () => listParentCommunications({
+      teacherEmail: teacher?.teacher_identifier,
+      allowAll: Boolean(teacher?.can_view_all_students),
+    }),
+    enabled: Boolean(teacher?.teacher_identifier),
+  });
+}
+
 export function useSubmitStudentCheckIn() {
   const queryClient = useQueryClient();
 
@@ -130,10 +207,12 @@ export function useSubmitStudentCheckIn() {
     mutationFn: submitStudentCheckIn,
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
       queryClient.invalidateQueries({ queryKey: ['students', variables.studentId] });
       queryClient.invalidateQueries({ queryKey: ['students', 'default'] });
       queryClient.invalidateQueries({ queryKey: ['student-checkins', 'latest', variables.studentId] });
       queryClient.invalidateQueries({ queryKey: ['student-checkins', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['follow-up-queue'] });
       if (result?.student?.student_identifier) {
         queryClient.setQueryData(['students', 'identifier', result.student.student_identifier], result.student);
       }
@@ -148,8 +227,13 @@ export function useLogTeacherAction() {
     mutationFn: logTeacherAction,
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
       queryClient.invalidateQueries({ queryKey: ['students', variables.studentId] });
       queryClient.invalidateQueries({ queryKey: ['teacher-actions', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions', 'teacher'] });
+      queryClient.invalidateQueries({ queryKey: ['follow-up-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['parent-communications'] });
+      queryClient.invalidateQueries({ queryKey: ['counsellor-cases'] });
     },
   });
 }
@@ -161,11 +245,64 @@ export function useOpenStudentSurvey() {
     mutationFn: openSurveyForStudent,
     onSuccess: (student, variables) => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
       queryClient.invalidateQueries({ queryKey: ['students', variables.studentId] });
       queryClient.invalidateQueries({ queryKey: ['teacher-actions', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions', 'teacher'] });
       if (student?.student_identifier) {
         queryClient.setQueryData(['students', 'identifier', student.student_identifier], student);
       }
+    },
+  });
+}
+
+export function useOpenStudentSurveys() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: openSurveysForStudents,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions'] });
+    },
+  });
+}
+
+export function useCreateCounsellorCase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createCounsellorCase,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
+      queryClient.invalidateQueries({ queryKey: ['students', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions', variables.studentId] });
+      queryClient.invalidateQueries({ queryKey: ['counsellor-cases'] });
+      queryClient.invalidateQueries({ queryKey: ['parent-communications'] });
+    },
+  });
+}
+
+export function useUpdateCounsellorCaseStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateCounsellorCaseStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['counsellor-cases'] });
+    },
+  });
+}
+
+export function useUpdateParentCommunicationStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateParentCommunicationStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parent-communications'] });
     },
   });
 }
