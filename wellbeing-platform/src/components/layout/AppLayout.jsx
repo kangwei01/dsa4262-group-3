@@ -1,7 +1,8 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Heart, LayoutDashboard, Users, ShieldCheck, BookOpen, CalendarClock, ClipboardList, Mail, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTeacherAccess } from '@/lib/TeacherAccessContext';
+import { useCurrentStudent } from '@/hooks/useWellbeingData';
 
 const teacherNav = [
   { label: 'Dashboard', path: '/teacher', icon: LayoutDashboard },
@@ -18,9 +19,16 @@ const studentNav = [
 
 export default function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isTeacher = location.pathname.startsWith('/teacher');
   const nav = isTeacher ? teacherNav : studentNav;
   const { teacher, logout, isTeacherAuthenticated } = useTeacherAccess();
+  const { studentIdentifier, clearStudentIdentifier } = useCurrentStudent();
+
+  const handleStudentSignOut = () => {
+    clearStudentIdentifier();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -65,6 +73,11 @@ export default function AppLayout() {
                 <span className="text-[10px] text-muted-foreground">{teacher.teacher_identifier}</span>
               </div>
             )}
+            {!isTeacher && studentIdentifier && (
+              <div className="hidden lg:flex items-center gap-2 mr-2 rounded-full bg-secondary px-3 py-1.5">
+                <span className="text-[10px] text-muted-foreground">{studentIdentifier}</span>
+              </div>
+            )}
             <Link
               to="/"
               className={cn(
@@ -86,6 +99,15 @@ export default function AppLayout() {
             {isTeacher && isTeacherAuthenticated && (
               <button
                 onClick={logout}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium bg-secondary text-secondary-foreground hover:bg-muted transition-all"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
+              </button>
+            )}
+            {!isTeacher && studentIdentifier && (
+              <button
+                onClick={handleStudentSignOut}
                 className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium bg-secondary text-secondary-foreground hover:bg-muted transition-all"
               >
                 <LogOut className="w-3.5 h-3.5" />

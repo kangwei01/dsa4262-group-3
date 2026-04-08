@@ -69,18 +69,28 @@ function getWeeklyResponseQuestions(checkIn) {
 }
 
 function getActionButtons(student) {
-  if (student.risk_level === 'low') return [];
-  if (student.risk_level === 'medium') {
-    return [
-      { label: 'Check in privately', to: `/teacher/student/${student.id}/checkin`, variant: 'default' },
-      { label: 'Set 2-week monitor reminder', to: `/teacher/student/${student.id}/checkin?mode=monitor`, variant: 'outline' },
-    ];
-  }
-  return [
+  const buttons = [
     { label: 'Check in privately', to: `/teacher/student/${student.id}/checkin`, variant: 'default' },
     { label: 'Escalate to counsellor', to: `/teacher/student/${student.id}/escalate`, variant: 'outline' },
-    { label: 'Contact parents', to: `/teacher/student/${student.id}/parents`, variant: 'outline' },
   ];
+
+  if (student.risk_level !== 'high') {
+    buttons.splice(1, 0, {
+      label: 'Set 2-week monitor reminder',
+      to: `/teacher/student/${student.id}/checkin?mode=monitor`,
+      variant: 'outline',
+    });
+  }
+
+  if (student.risk_level === 'high') {
+    buttons.push({
+      label: 'Contact parents',
+      to: `/teacher/student/${student.id}/parents`,
+      variant: 'outline',
+    });
+  }
+
+  return buttons;
 }
 
 function hasCompletedCheckIn(teacherActions = []) {
@@ -209,41 +219,40 @@ export default function StudentDetail() {
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{displayedNextStep.description}</p>
           </div>
 
-          {student.risk_level === 'low' ? (
-            <p className="text-sm text-muted-foreground">No action needed this week. Continue routine support.</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {actionButtons.map((button) => (
-                  <Link key={button.label} to={button.to}>
-                    <Button variant={button.variant} className="w-full">
-                      {button.label} →
-                    </Button>
-                  </Link>
-                ))}
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserRound className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-medium text-foreground">Suggested draft for teacher review</p>
-                </div>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {`Hi ${student.name}, I just wanted to check in with you. I've noticed you might be finding things a bit tough lately — how have things been with ${buildScriptTopic(student)} recently?`}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarClock className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-medium text-foreground">Follow-up</p>
-                </div>
-                <p className="text-sm text-foreground">
-                  {student.next_follow_up_at
-                    ? `Reminder set — review ${student.name} on ${new Date(student.next_follow_up_at).toLocaleDateString()}.`
-                    : followUp.title}
-                </p>
-              </div>
+          <div className="space-y-4">
+            {student.risk_level === 'low' && (
+              <p className="text-sm text-muted-foreground">No action needed this week. Continue routine support.</p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {actionButtons.map((button) => (
+                <Link key={button.label} to={button.to}>
+                  <Button variant={button.variant} className="w-full">
+                    {button.label} →
+                  </Button>
+                </Link>
+              ))}
             </div>
-          )}
+            <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <UserRound className="w-4 h-4 text-primary" />
+                <p className="text-sm font-medium text-foreground">Suggested draft for teacher review</p>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed">
+                {`Hi ${student.name}, I just wanted to check in with you. I've noticed you might be finding things a bit tough lately — how have things been with ${buildScriptTopic(student)} recently?`}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CalendarClock className="w-4 h-4 text-primary" />
+                <p className="text-sm font-medium text-foreground">Follow-up</p>
+              </div>
+              <p className="text-sm text-foreground">
+                {student.next_follow_up_at
+                  ? `Reminder set — review ${student.name} on ${new Date(student.next_follow_up_at).toLocaleDateString()}.`
+                  : followUp.title}
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
