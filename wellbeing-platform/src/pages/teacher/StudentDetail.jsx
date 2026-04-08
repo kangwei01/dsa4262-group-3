@@ -1,61 +1,101 @@
-import { useParams, Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, CalendarClock, MessageSquareText, UserRound } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  ArrowLeft,
-  BookOpen,
-  CalendarClock,
-  Brain,
-  HeartPulse,
-  Home,
-  Info,
-  LockKeyhole,
-  Moon,
-  Smartphone,
-  Users,
-} from 'lucide-react';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
-import RiskChart from '@/components/teacher/RiskChart';
-import DecisionPanel from '@/components/teacher/DecisionPanel';
-import { useOpenStudentSurvey, useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
+import TrendSparkline from '@/components/teacher/TrendSparkline';
+import { useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
 import {
-  buildSupportCardsFromSignals,
-  DISTRESS_THRESHOLD,
-  HIGH_DISTRESS_THRESHOLD,
-  getConsecutiveDistressWeeks,
-  hasThreeWeekDistressFlag,
+  formatSignalLabel,
+  getRecommendedAction,
+  getResponseLabel,
+  getSignalArrow,
+  monthlyQuestions,
+  weeklyQuestions,
 } from '@/lib/rfModel';
 import { buildFollowUpRecommendation } from '@/lib/wellbeingContent';
 import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
-const categoryIcons = {
-  sleep: Moon,
-  workload: BookOpen,
-  family: Home,
-  social: Users,
-  physical: HeartPulse,
-  school: Brain,
-  online: Smartphone,
-  self_image: Brain,
-};
-
-const severityConfig = {
-  high: { color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200', bar: 'bg-rose-400' },
-  medium: { color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', bar: 'bg-amber-400' },
-  low: { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', bar: 'bg-emerald-400' },
-};
-
-const severityWidth = { high: 'w-full', medium: 'w-2/3', low: 'w-1/3' };
-
-const actionLabels = {
-  open_survey: 'Opened survey',
-  monitor: 'Monitoring',
-  check_in: 'Teacher check-in',
+const actionTypeLabels = {
+  open_survey: 'Survey opened',
+  monitor: 'Reminder',
+  check_in: 'Private check-in',
   refer_counsellor: 'Counsellor referral',
   parent_contact: 'Parent contact',
 };
+
+const outcomeLabels = {
+  pending: 'Pending',
+  student_receptive: 'Student was receptive',
+  student_closed: 'Student was closed',
+  referred_to_counsellor: 'Referred to counsellor',
+  no_follow_up_needed: 'No follow-up needed',
+  improved: 'Improved',
+  same: 'About the same',
+  worse: 'Worse',
+};
+
+function buildTrendSummary(student) {
+  const recent = (student.weekly_scores || []).slice(-4);
+  if (recent.length < 2) return 'Not enough history yet to summarise a trend.';
+  const first = recent[0].score || 0;
+  const last = recent[recent.length - 1].score || 0;
+  if (last > first) return `Score has increased from ${first} to ${last} over the last ${recent.length} weeks.`;
+  if (last < first) return `Score has decreased from ${first} to ${last} over the last ${recent.length} weeks.`;
+  return `Score has stayed fairly steady around ${last} over the last ${recent.length} weeks.`;
+}
+
+function buildSignalSummary(student) {
+  return (student.key_factors || [])
+    .slice(0, 2)
+    .map((signal) => `${formatSignalLabel(signal.feature || signal.factor)} ${getSignalArrow(signal.direction)}`)
+    .join(' · ');
+}
+
+function buildScriptTopic(student) {
+  const items = (student.key_factors || [])
+    .slice(0, 2)
+    .map((signal) => formatSignalLabel(signal.feature || signal.factor).toLowerCase());
+  return items.length > 0 ? items.join(' and ') : 'things this week';
+}
+
+function getWeeklyResponseQuestions(checkIn) {
+  if (!checkIn) return [];
+  if (checkIn.survey_type === 'monthly') {
+    return [...weeklyQuestions, ...monthlyQuestions];
+  }
+  return weeklyQuestions;
+}
+
+function getActionButtons(student) {
+  if (student.risk_level === 'low') return [];
+  if (student.risk_level === 'medium') {
+    return [
+      { label: 'Check in privately', to: `/teacher/student/${student.id}/checkin`, variant: 'default' },
+      { label: 'Set 2-week monitor reminder', to: `/teacher/student/${student.id}/checkin?mode=monitor`, variant: 'outline' },
+    ];
+  }
+  return [
+    { label: 'Check in privately', to: `/teacher/student/${student.id}/checkin`, variant: 'default' },
+    { label: 'Escalate to counsellor', to: `/teacher/student/${student.id}/escalate`, variant: 'outline' },
+    { label: 'Contact parents', to: `/teacher/student/${student.id}/parents`, variant: 'outline' },
+  ];
+}
+
+function hasCompletedCheckIn(teacherActions = []) {
+  return teacherActions.some((action) => action.action_type === 'check_in' && action.completed);
+}
+
+function getDisplayedNextStep(student, recommendedAction, teacherActions) {
+  if (student.next_follow_up_at && hasCompletedCheckIn(teacherActions)) {
+    return {
+      action: 'Next session scheduled',
+      description: `A follow-up has been scheduled for ${new Date(student.next_follow_up_at).toLocaleDateString()}.`,
+    };
+  }
+  return recommendedAction;
+}
 
 export default function StudentDetail() {
   const { id } = useParams();
@@ -63,7 +103,6 @@ export default function StudentDetail() {
   const { data: student, isLoading } = useTeacherStudent(id, teacher);
   const { data: checkIns = [] } = useStudentCheckIns(id);
   const { data: teacherActions = [] } = useTeacherActions(id);
-  const openStudentSurvey = useOpenStudentSurvey();
 
   if (isLoading) {
     return <div className="py-10 text-sm text-muted-foreground">Loading student profile…</div>;
@@ -78,357 +117,159 @@ export default function StudentDetail() {
     );
   }
 
-  const distressStreak = getConsecutiveDistressWeeks(student.weekly_scores);
-  const hasDistressFlag = hasThreeWeekDistressFlag(student.weekly_scores);
-  const supportDirections = buildSupportCardsFromSignals(student.key_factors);
-  const latestCheckIns = checkIns.slice(0, 4);
-  const topFactors = student.key_factors.slice(0, 2).map((item) => item.factor);
+  const latestCheckIn = checkIns[0] || null;
+  const recommendedAction = getRecommendedAction(student);
+  const displayedNextStep = getDisplayedNextStep(student, recommendedAction, teacherActions);
   const followUp = buildFollowUpRecommendation(student);
-  const mainConcern = topFactors.length > 0
-    ? `Main concern: ${topFactors.join(' + ')}`
-    : 'Main concern: no single dominant signal yet';
-
-  const handleOpenSurvey = async (surveyType = 'weekly') => {
-    try {
-      await openStudentSurvey.mutateAsync({
-        studentId: student.id,
-        surveyType,
-        teacherEmail: teacher?.teacher_identifier || student.assigned_teacher || 'wellbeing@school.edu',
-      });
-      toast.success(`${surveyType === 'monthly' ? 'Monthly refresh' : 'Weekly pulse'} opened for this student`);
-    } catch (error) {
-      toast.error(error.message || 'Could not open the survey right now.');
-    }
-  };
+  const responseQuestions = getWeeklyResponseQuestions(latestCheckIn);
+  const actionButtons = getActionButtons(student);
+  const sexLabel = getResponseLabel('sex', student.baseline_responses?.sex);
 
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-4">
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
         <Link to="/teacher">
-          <Button variant="ghost" size="icon" className="shrink-0">
+          <Button variant="ghost" size="icon">
             <ArrowLeft className="w-4 h-4" />
           </Button>
         </Link>
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold shrink-0">
-          {student.name.charAt(0)}
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold text-foreground">{student.name}</h1>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-sm text-muted-foreground">{student.grade} · Age {student.age}</span>
-            <RiskBadge level={student.risk_level} />
-            <TrendIndicator trend={student.trend} />
-            <span className="text-[11px] text-muted-foreground">{student.confidence}% confidence</span>
-          </div>
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{student.name}</h1>
+          <p className="text-sm text-muted-foreground">{student.grade} · {student.student_identifier || 'No student ID'}</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-medium text-foreground">
-          Latest score: {student.risk_score}/100
-        </span>
-        {hasDistressFlag ? (
-            <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
-            {distressStreak} consecutive weeks in monitoring band ({DISTRESS_THRESHOLD.toFixed(2)}+)
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-            No active 3-week monitoring pattern
-            </span>
-          )}
-      </div>
-
-      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">What stands out most</p>
-          <p className="text-sm font-semibold text-foreground">{mainConcern}</p>
-          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-            {student.trend === 'worsening'
-              ? 'The recent pattern is getting heavier rather than settling on its own.'
-              : 'Use the recent trend plus the top signals below to decide whether this is settling or needs a more active response.'}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Follow-up reminder</p>
-          <p className="text-sm font-semibold text-foreground">
-            {student.next_follow_up_at
-              ? `Review on ${new Date(student.next_follow_up_at).toLocaleDateString()}`
-              : followUp.title}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-            {student.next_follow_up_note || followUp.reason}
-          </p>
-        </div>
-      </div>
-
-      {hasDistressFlag && (
-        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm font-medium text-amber-800">
-            This student has stayed at or above the monitoring threshold for the last {distressStreak} weeks.
-          </p>
-          <p className="text-xs text-amber-700 mt-1">
-            Use the contributing factors below to guide the check-in, then review again in 2 weeks or escalate if the pattern continues.
-          </p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-sm text-foreground">Distress Score Trajectory</h3>
-                <span className="text-[11px] text-muted-foreground bg-secondary px-2 py-1 rounded">Past 6 weeks</span>
+      <Card className="border-border/60">
+        <CardContent className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Section 1 — Student overview</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm text-foreground">{student.grade || 'Year —'}</span>
+                <span className="text-sm text-foreground">Age {student.age || '—'}</span>
+                <span className="text-sm text-foreground">Sex {sexLabel}</span>
+                <RiskBadge level={student.risk_level} />
+                <TrendIndicator trend={student.trend} />
               </div>
-              <RiskChart weeklyScores={student.weekly_scores} />
-            </CardContent>
-          </Card>
-
-          {student.key_factors.length > 0 && (
-            <Card>
-              <CardContent className="p-5">
-                <h3 className="font-semibold text-sm text-foreground mb-1">Contributing Factors</h3>
-                <p className="text-xs text-muted-foreground mb-4">Top feature clusters currently pulling the score upward.</p>
-                <div className="space-y-3">
-                  {student.key_factors.map((item, index) => {
-                    const styles = severityConfig[item.severity] || severityConfig.low;
-                    const Icon = categoryIcons[item.category] || Brain;
-                    return (
-                      <div key={`${item.factor}-${index}`} className={`p-3 rounded-xl border ${styles.border} ${styles.bg}`}>
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-[11px] font-bold text-muted-foreground w-5">#{index + 1}</span>
-                          <Icon className={`w-4 h-4 ${styles.color}`} />
-                          <span className={`text-sm font-semibold ${styles.color}`}>{item.factor}</span>
-                          <span className="ml-auto text-[11px] text-muted-foreground capitalize">{item.direction}</span>
-                        </div>
-                        <div className="h-1 bg-white/60 rounded-full overflow-hidden ml-8">
-                          <div className={`h-full rounded-full ${styles.bar} ${severityWidth[item.severity]}`} />
-                        </div>
-                      </div>
-                    );
-                  })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current score</p>
+                  <p className="text-3xl font-semibold text-foreground mt-2">{student.risk_score}</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardContent className="p-5">
-              <h3 className="font-semibold text-sm text-foreground mb-4">Weekly Factor Breakdown</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-2 font-semibold text-muted-foreground">Week</th>
-                      {student.weekly_scores[0] && Object.keys(student.weekly_scores[0]).filter((key) => key !== 'week' && key !== 'score').map((key) => (
-                        <th key={key} className="text-center py-2 font-semibold text-muted-foreground capitalize">{key}</th>
-                      ))}
-                      <th className="text-center py-2 font-semibold text-muted-foreground">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {student.weekly_scores.map((row, index) => {
-                      const factors = Object.keys(row).filter((key) => key !== 'week' && key !== 'score');
-                      const isRecent = index >= student.weekly_scores.length - 3;
-                      return (
-                        <tr key={row.week} className={`border-b border-border/30 ${isRecent ? 'bg-primary/[0.02]' : ''}`}>
-                          <td className="py-2 font-medium text-foreground">
-                            {row.week}
-                            {isRecent && (
-                              <span className="ml-1.5 text-[9px] text-primary font-semibold uppercase">recent</span>
-                            )}
-                          </td>
-                          {factors.map((key) => (
-                            <td key={key} className="text-center py-2">
-                              <span className={`font-semibold ${
-                                row[key] <= 2 ? 'text-rose-600' : row[key] <= 3 ? 'text-amber-600' : 'text-emerald-600'
-                              }`}>{row[key]}</span>
-                            </td>
-                          ))}
-                          <td className="text-center py-2">
-                            <span className={`font-bold ${
-                              row.score >= HIGH_DISTRESS_THRESHOLD ? 'text-rose-600' : row.score >= DISTRESS_THRESHOLD ? 'text-amber-600' : 'text-emerald-600'
-                            }`}>{row.score}</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Main signals</p>
+                  <p className="text-sm font-medium text-foreground mt-2">{buildSignalSummary(student) || 'No dominant signal yet'}</p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">{buildTrendSummary(student)}</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-card p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Trend over last 4 weeks</p>
+              <TrendSparkline weeklyScores={student.weekly_scores.slice(-4)} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="space-y-5">
-          <Card className="border-border/60">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <CalendarClock className="w-4 h-4 text-primary" />
-                    <h3 className="font-semibold text-sm text-foreground">Survey Access</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {student.survey_status === 'open'
-                      ? `The student can submit one ${student.survey_type === 'monthly' ? 'monthly refresh' : 'weekly pulse'} right now.`
-                      : 'The student is currently waiting for the next survey to be opened.'}
+      <Card className="border-border/60">
+        <CardContent className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Section 2 — This week&apos;s responses</h2>
+          {!latestCheckIn ? (
+            <p className="text-sm text-muted-foreground">No current-week submission has been recorded yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {responseQuestions.map((question) => (
+                <div key={question.feature} className="rounded-2xl border border-border/60 bg-card p-4">
+                  <p className="text-sm font-medium text-foreground">{question.question}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {getResponseLabel(question, latestCheckIn.answers?.[question.feature])}
                   </p>
                 </div>
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                  student.survey_status === 'open'
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-secondary text-muted-foreground border border-border'
-                }`}>
-                  {student.survey_status === 'open'
-                    ? `${student.survey_type === 'monthly' ? 'Monthly' : 'Weekly'} open`
-                    : 'Closed'}
-                </span>
-              </div>
-              <div className="mt-4 space-y-1 text-[11px] text-muted-foreground">
-                <p>Student ID: {student.student_identifier || '—'}</p>
-                <p>Latest monthly refresh: {student.monthly_completed_at ? new Date(student.monthly_completed_at).toLocaleDateString() : 'Not completed yet'}</p>
-                {student.survey_opened_at && (
-                  <p>Last opened: {new Date(student.survey_opened_at).toLocaleString()}</p>
-                )}
-                {student.survey_opened_by && (
-                  <p>Opened by: {student.survey_opened_by}</p>
-                )}
-              </div>
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button
-                  onClick={() => handleOpenSurvey('weekly')}
-                  disabled={openStudentSurvey.isPending}
-                  className="w-full gap-2"
-                >
-                  <LockKeyhole className="w-4 h-4" />
-                  Open weekly pulse
-                </Button>
-                <Button
-                  onClick={() => handleOpenSurvey('monthly')}
-                  disabled={openStudentSurvey.isPending}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  <CalendarClock className="w-4 h-4" />
-                  Open monthly refresh
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <DecisionPanel student={student} />
-
-          {supportDirections.length > 0 && (
-            <Card className="border-border/60">
-              <CardContent className="p-5">
-                <h3 className="font-semibold text-sm text-foreground mb-3">Suggested Support Directions</h3>
-                <div className="space-y-3">
-                  {supportDirections.map((card) => (
-                    <div key={card.featureId} className="rounded-xl border border-border/60 bg-secondary/20 p-3">
-                      <p className="text-sm font-semibold text-foreground">{card.title}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1">{card.featureLabel}</p>
-                      <p className="text-xs text-foreground mt-2 leading-relaxed">{card.teacherNote}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <Card className="border-border/60">
-            <CardContent className="p-5">
-              <h3 className="font-semibold text-sm text-foreground mb-3">Student Check-in Notes</h3>
-              {latestCheckIns.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No submitted surveys yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {latestCheckIns.map((checkIn) => (
-                    <div key={checkIn.id || `${checkIn.week}-${checkIn.created_at || ''}`} className="rounded-xl border border-border/60 bg-secondary/20 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold text-foreground">{checkIn.week || 'Saved check-in'}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-1">
-                            {checkIn.survey_type === 'monthly' ? 'Monthly refresh' : 'Weekly pulse'}
-                          </p>
-                        </div>
-                        <span className="text-[11px] text-muted-foreground">{checkIn.computed_score ?? '—'}/100</span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        {checkIn.created_at ? new Date(checkIn.created_at).toLocaleString() : 'Saved without timestamp'}
-                      </p>
-                      <p className="text-sm text-foreground mt-2 leading-relaxed">
-                        {checkIn.free_text || 'No free-text note added for this submission.'}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60">
-            <CardContent className="p-5">
-              <h3 className="font-semibold text-sm text-foreground mb-3">Teacher Action Log</h3>
-              {teacherActions.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No teacher actions logged yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {teacherActions.map((action) => (
-                    <div key={action.id || `${action.action_type}-${action.created_at || ''}`} className="rounded-xl border border-border/60 bg-card p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold text-foreground">{actionLabels[action.action_type] || action.action_type}</p>
-                        <span className="text-[11px] text-muted-foreground">
-                          {action.created_at ? new Date(action.created_at).toLocaleString() : 'Saved action'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Outcome: {action.outcome || 'pending'}{action.completed ? ' · completed' : ''}
-                      </p>
-                      {action.follow_up_due_at && (
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Follow-up due: {new Date(action.follow_up_due_at).toLocaleDateString()}
-                        </p>
-                      )}
-                      <p className="text-sm text-foreground mt-2 leading-relaxed">
-                        {action.notes || action.referral_summary || 'No notes recorded.'}
-                      </p>
-                      {action.generated_parent_message && (
-                        <div className="mt-3 rounded-xl border border-border/60 bg-secondary/20 p-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Parent communication</p>
-                          <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{action.generated_parent_message}</p>
-                        </div>
-                      )}
-                      {action.escalation_payload && (
-                        <div className="mt-3 rounded-xl border border-border/60 bg-secondary/20 p-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Escalation package</p>
-                          <p className="text-xs text-foreground">
-                            {(action.escalation_payload.signals || []).length} signals · {(action.escalation_payload.student_check_ins || []).length || 0} check-ins included
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {student.scenario && (
-            <Card className="border-primary/20 bg-primary/[0.02]">
-              <CardContent className="p-4">
+              ))}
+              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Info className="w-4 h-4 text-primary" />
-                  <h3 className="font-semibold text-xs text-primary uppercase tracking-wide">
-                    {student.scenario === 'silent_struggler' ? 'Silent struggler pattern' : 'Temporary stress pattern'}
-                  </h3>
+                  <MessageSquareText className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Student&apos;s note to teacher:</p>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{student.scenario_desc}</p>
-              </CardContent>
-            </Card>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {latestCheckIn.free_text || 'No note added for this submission.'}
+                </p>
+              </div>
+            </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60">
+        <CardContent className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Section 3 — Action panel — next steps</h2>
+          <div className="rounded-2xl border border-primary/15 bg-primary/[0.03] p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">Recommended next step</p>
+            <p className="text-lg font-semibold text-foreground">{displayedNextStep.action}</p>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{displayedNextStep.description}</p>
+          </div>
+
+          {student.risk_level === 'low' ? (
+            <p className="text-sm text-muted-foreground">No action needed this week. Continue routine support.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {actionButtons.map((button) => (
+                  <Link key={button.label} to={button.to}>
+                    <Button variant={button.variant} className="w-full">
+                      {button.label} →
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserRound className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Suggested draft for teacher review</p>
+                </div>
+                <p className="text-sm text-foreground leading-relaxed">
+                  {`Hi ${student.name}, I just wanted to check in with you. I've noticed you might be finding things a bit tough lately — how have things been with ${buildScriptTopic(student)} recently?`}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarClock className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Follow-up</p>
+                </div>
+                <p className="text-sm text-foreground">
+                  {student.next_follow_up_at
+                    ? `Reminder set — review ${student.name} on ${new Date(student.next_follow_up_at).toLocaleDateString()}.`
+                    : followUp.title}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/60">
+        <CardContent className="p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Section 4 — Action log</h2>
+          {teacherActions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No actions logged yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {teacherActions.map((action) => (
+                <div key={action.id || `${action.action_type}-${action.created_at || ''}`} className="rounded-2xl border border-border/60 bg-card p-4">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <p className="text-sm font-semibold text-foreground">{actionTypeLabels[action.action_type] || action.action_type}</p>
+                    <span className="text-xs text-muted-foreground">
+                      {action.created_at ? new Date(action.created_at).toLocaleString() : 'Saved action'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{outcomeLabels[action.outcome] || action.outcome || 'Pending'}</p>
+                  <p className="text-sm text-foreground mt-2 leading-relaxed">{action.notes || action.referral_summary || 'No notes recorded.'}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

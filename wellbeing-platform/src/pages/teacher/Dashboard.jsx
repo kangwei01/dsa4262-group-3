@@ -1,295 +1,304 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertTriangle, CalendarClock, Send, ShieldCheck, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, AlertTriangle, Shield, ArrowUpDown, Activity, CalendarClock, Send } from 'lucide-react';
-import { toast } from 'sonner';
-import ActionNeeded from '@/components/teacher/ActionNeeded';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
 import TrendSparkline from '@/components/teacher/TrendSparkline';
-import { useOpenStudentSurveys, useTeacherStudents } from '@/hooks/useWellbeingData';
+import { useOpenStudentSurveys, useTeacherActivityFeed, useTeacherStudents } from '@/hooks/useWellbeingData';
 import {
-  DISTRESS_THRESHOLD,
-  HIGH_DISTRESS_THRESHOLD,
+  FLAG_THRESHOLD,
+  formatSignalLabel,
   getConsecutiveDistressWeeks,
   getRecommendedAction,
   hasThreeWeekDistressFlag,
+  hasTwoWeekElevatedPattern,
 } from '@/lib/rfModel';
 import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
-const keyFactorLabel = (student) => {
-  if (student.key_factors.length === 0) return '—';
-  const top = student.key_factors[0];
-  const arrow = top.direction === 'declining' || top.direction === 'worsening'
-    ? '↓'
-    : top.direction === 'increasing'
-      ? '↑'
-      : '→';
-  return `${top.factor} ${arrow}`;
-};
+function hasCompletedCheckIn(studentId, actions = []) {
+  return actions.some((action) => (
+    action.student_id === studentId
+    && action.action_type === 'check_in'
+    && action.completed
+  ));
+}
 
-const statusLabels = {
-  none: null,
-  monitoring: { label: 'Monitoring', color: 'text-sky-600 bg-sky-50' },
-  check_in_scheduled: { label: 'Scheduled', color: 'text-amber-600 bg-amber-50' },
-  check_in_completed: { label: 'Done', color: 'text-emerald-600 bg-emerald-50' },
-  referred: { label: 'Referred', color: 'text-rose-600 bg-rose-50' },
-};
+function getActionRoute(student, actions) {
+  if (student.next_follow_up_at && hasCompletedCheckIn(student.id, actions)) {
+    return `/teacher/student/${student.id}`;
+  }
+  const recommendation = getRecommendedAction(student);
+  if (recommendation.key === 'escalate') {
+    return `/teacher/student/${student.id}/escalate`;
+  }
+  if (recommendation.key === 'monitor') {
+    return `/teacher/student/${student.id}/checkin?mode=monitor`;
+  }
+  if (recommendation.key === 'check_in') {
+    return `/teacher/student/${student.id}/checkin`;
+  }
+  return `/teacher/student/${student.id}`;
+}
 
-const urgencyRank = (student) => {
-  if (student.risk_score >= HIGH_DISTRESS_THRESHOLD) return 0;
-  if (hasThreeWeekDistressFlag(student.weekly_scores)) return 1;
-  if (student.trend === 'worsening') return 2;
-  if (student.risk_level === 'medium') return 3;
-  return 4;
-};
+function getReviewUrgency(student) {
+  if (student.risk_score >= FLAG_THRESHOLD) return 0;
+  if (student.risk_level === 'medium' && student.trend === 'worsening') return 1;
+  if (student.risk_level === 'medium') return 2;
+  return 3;
+}
+
+function hasCompletedActionThisWeek(studentId, actions) {
+  const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  return actions.some((action) => (
+    action.student_id === studentId
+    && action.completed
+    && Date.parse(action.created_at || 0) >= weekAgo
+  ));
+}
+
+function isDueToday(dateString) {
+  if (!dateString) return false;
+  const dueDate = new Date(dateString);
+  const today = new Date();
+  return dueDate.getFullYear() === today.getFullYear()
+    && dueDate.getMonth() === today.getMonth()
+    && dueDate.getDate() === today.getDate();
+}
+
+function buildMainSignal(student) {
+  const top = student.key_factors?.[0];
+  if (!top) return 'No dominant signal';
+  return `${formatSignalLabel(top.feature || top.factor)} ${top.direction === 'worsening' || top.direction === 'increasing' ? '↑' : top.direction === 'declining' || top.direction === 'harder' ? '↓' : '→'}`;
+}
+
+function statusLabel(student, actions) {
+  if (student.action_status === 'referred') return 'Referred';
+  if (student.next_follow_up_at && hasCompletedCheckIn(student.id, actions)) return 'Checked in';
+  if (student.action_status === 'check_in_scheduled') return 'Check-in set';
+  if (student.action_status === 'check_in_completed' || hasCompletedCheckIn(student.id, actions)) return 'Checked in';
+  if (student.action_status === 'monitoring') return 'Monitoring';
+  return 'No action yet';
+}
+
+function nextStepLabel(student, actions) {
+  if (student.next_follow_up_at && hasCompletedCheckIn(student.id, actions)) {
+    return 'Next session scheduled';
+  }
+  return getRecommendedAction(student).action;
+}
 
 export default function Dashboard() {
-  const [filterRisk, setFilterRisk] = useState('all');
-  const [sortBy, setSortBy] = useState('urgency');
+  const [showAllReview, setShowAllReview] = useState(false);
   const { teacher } = useTeacherAccess();
-  const { data: students = [], isLoading, error } = useTeacherStudents(teacher);
+  const { data: students = [], isLoading } = useTeacherStudents(teacher);
+  const { data: actions = [] } = useTeacherActivityFeed(teacher);
   const openStudentSurveys = useOpenStudentSurveys();
 
-  const filtered = students
-    .filter((student) => filterRisk === 'all' || student.risk_level === filterRisk)
-    .sort((a, b) => {
-      if (sortBy === 'urgency') {
-        return urgencyRank(a) - urgencyRank(b) || b.risk_score - a.risk_score;
-      }
-      if (sortBy === 'score') return b.risk_score - a.risk_score;
-      if (sortBy === 'trend') {
-        const order = { worsening: 0, stable: 1, improving: 2 };
-        return order[a.trend] - order[b.trend];
-      }
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      return 0;
-    });
-
-  const stats = {
+  const stats = useMemo(() => ({
     total: students.length,
-    flagged: students.filter((student) => student.risk_score >= HIGH_DISTRESS_THRESHOLD).length,
-    sustained: students.filter((student) => hasThreeWeekDistressFlag(student.weekly_scores)).length,
-    followUpDue: students.filter((student) => (
-      student.next_follow_up_at && Date.parse(student.next_follow_up_at) <= Date.now()
-    )).length,
-  };
+    flagged: students.filter((student) => student.risk_score >= FLAG_THRESHOLD).length,
+    sustained: students.filter((student) => hasTwoWeekElevatedPattern(student.weekly_scores)).length,
+    followUpsDue: students.filter((student) => isDueToday(student.next_follow_up_at)).length,
+  }), [students]);
 
-  const handleBatchOpen = async (surveyType, targetStudents) => {
+  const reviewStudents = useMemo(() => (
+    students
+      .filter((student) => (
+        (student.risk_level === 'high' || student.risk_level === 'medium')
+        && !hasCompletedActionThisWeek(student.id, actions)
+      ))
+      .sort((a, b) => (
+        getReviewUrgency(a) - getReviewUrgency(b)
+        || b.risk_score - a.risk_score
+        || a.name.localeCompare(b.name)
+      ))
+  ), [actions, students]);
+
+  const visibleReviewStudents = showAllReview ? reviewStudents : reviewStudents.slice(0, 6);
+
+  const sortedStudents = useMemo(() => (
+    [...students].sort((a, b) => (
+      getReviewUrgency(a) - getReviewUrgency(b)
+      || b.risk_score - a.risk_score
+      || a.name.localeCompare(b.name)
+    ))
+  ), [students]);
+
+  const handleBatchOpen = async (surveyType) => {
     try {
       await openStudentSurveys.mutateAsync({
-        studentIds: targetStudents.map((student) => student.id),
+        studentIds: students.map((student) => student.id),
         surveyType,
         teacherEmail: teacher?.teacher_identifier || 'wellbeing@school.edu',
-        notes: `${surveyType === 'monthly' ? 'Monthly refresh' : 'Weekly pulse'} opened in a teacher batch action.`,
+        notes: `${surveyType === 'monthly' ? 'Monthly check-in' : 'Weekly pulse'} opened from the dashboard.`,
       });
-      toast.success(`${surveyType === 'monthly' ? 'Monthly refresh' : 'Weekly pulse'} opened for ${targetStudents.length} student${targetStudents.length === 1 ? '' : 's'}.`);
-    } catch (batchError) {
-      toast.error(batchError.message || 'Could not open the survey batch right now.');
+      toast.success(`${surveyType === 'monthly' ? 'Monthly check-in' : 'Weekly pulse'} opened.`);
+    } catch (error) {
+      toast.error(error.message || 'Could not open the survey window right now.');
     }
   };
 
-  const filteredStudentIds = filtered.map((student) => student.id);
-  const monthlyTargetStudents = filtered.filter((student) => (
-    student.risk_level !== 'low' || hasThreeWeekDistressFlag(student.weekly_scores)
-  ));
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Student Wellbeing Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Detect concerns, decide the next step, act supportively, record it, and follow up.
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Detect → Decide → Act → Record → Follow-up
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-lg">
-            {teacher?.name || 'Teacher workspace'} · {error ? 'Backend fallback active' : 'Synced with backend'}
-          </div>
           <Button
-            size="sm"
             variant="outline"
-            className="gap-1.5"
-            disabled={openStudentSurveys.isPending || filteredStudentIds.length === 0}
-            onClick={() => handleBatchOpen('weekly', filtered)}
+            className="gap-2"
+            disabled={openStudentSurveys.isPending || students.length === 0}
+            onClick={() => handleBatchOpen('weekly')}
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-4 h-4" />
             Open weekly pulse
           </Button>
           <Button
-            size="sm"
-            className="gap-1.5"
-            disabled={openStudentSurveys.isPending || monthlyTargetStudents.length === 0}
-            onClick={() => handleBatchOpen('monthly', monthlyTargetStudents)}
+            className="gap-2"
+            disabled={openStudentSurveys.isPending || students.length === 0}
+            onClick={() => handleBatchOpen('monthly')}
           >
-            <CalendarClock className="w-3.5 h-3.5" />
-            Open monthly refresh
+            <CalendarClock className="w-4 h-4" />
+            Open monthly check-in
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label: 'Total Students', value: stats.total, icon: Users, color: 'text-primary bg-primary/10' },
-          { label: 'Flagged This Week', value: stats.flagged, icon: AlertTriangle, color: 'text-rose-600 bg-rose-50' },
-          { label: 'Sustained Monitor Pattern', value: stats.sustained, icon: Activity, color: 'text-amber-700 bg-amber-50' },
-          { label: 'Follow-ups Due', value: stats.followUpDue, icon: Shield, color: 'text-sky-700 bg-sky-50' },
-        ].map((stat) => (
-          <Card key={stat.label} className="border-border/50">
+          { label: 'Total Students', value: stats.total, icon: Users, tone: 'bg-primary/10 text-primary' },
+          { label: 'Flagged This Week', value: stats.flagged, icon: AlertTriangle, tone: 'bg-rose-50 text-rose-700' },
+          { label: 'Sustained Monitor Pattern', value: stats.sustained, icon: ShieldCheck, tone: 'bg-amber-50 text-amber-700' },
+          { label: 'Follow-ups Due', value: stats.followUpsDue, icon: CalendarClock, tone: 'bg-sky-50 text-sky-700' },
+        ].map((card) => (
+          <Card key={card.label} className="border-border/60">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
-                <stat.icon className="w-5 h-5" />
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${card.tone}`}>
+                <card.icon className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-[11px] text-muted-foreground">{stat.label}</p>
+                <p className="text-2xl font-semibold text-foreground">{card.value}</p>
+                <p className="text-[11px] text-muted-foreground max-w-[180px]">{card.label}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="mb-6 rounded-2xl border border-border/60 bg-card px-4 py-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Privacy notice</p>
-        <p className="text-sm text-foreground leading-relaxed">
-          Student responses are confidential and should be used for support purposes only.
-        </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          This workspace is scoped to {teacher?.teacher_identifier || 'the signed-in teacher account'}.
-        </p>
-      </div>
+      <Card className="border-border/60">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Students Needing Review</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Flagged students appear first, followed by monitor students with worsening patterns, then stable monitor students.
+              </p>
+            </div>
+            {reviewStudents.length > 6 && (
+              <Button variant="ghost" size="sm" onClick={() => setShowAllReview((value) => !value)}>
+                {showAllReview ? 'Show less' : 'Show all'}
+              </Button>
+            )}
+          </div>
 
-      <ActionNeeded students={students} />
+          {visibleReviewStudents.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6">No students currently need manual review.</p>
+          ) : (
+            <div className="space-y-3">
+              {visibleReviewStudents.map((student) => (
+                <div key={student.id} className="rounded-2xl border border-border/60 bg-card p-4">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link to={`/teacher/student/${student.id}`} className="text-sm font-semibold text-foreground hover:text-primary">
+                          {student.name}
+                        </Link>
+                        <span className="text-xs text-muted-foreground">{student.grade} · Age {student.age}</span>
+                        <RiskBadge level={student.risk_level} />
+                        <TrendIndicator trend={student.trend} />
+                      </div>
+                      <p className="text-sm text-foreground">{buildMainSignal(student)}</p>
+                    </div>
+                    <Link to={`/teacher/student/${student.id}`}>
+                      <Button size="sm" variant="outline">View student →</Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={filterRisk} onValueChange={setFilterRisk}>
-            <SelectTrigger className="w-40 h-8 text-xs">
-              <SelectValue placeholder="All levels" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All support bands</SelectItem>
-              <SelectItem value="high">Flagged only</SelectItem>
-              <SelectItem value="medium">Monitor only</SelectItem>
-              <SelectItem value="low">Routine only</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40 h-8 text-xs">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="urgency">Sort: Urgency</SelectItem>
-              <SelectItem value="score">Sort: Latest Score</SelectItem>
-              <SelectItem value="trend">Sort: Trend</SelectItem>
-              <SelectItem value="name">Sort: Name</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {filtered.length} student{filtered.length !== 1 ? 's' : ''}
-        </span>
-      </div>
-
-      {isLoading ? (
-        <div className="py-10 text-sm text-muted-foreground">Loading student dashboard…</div>
-      ) : (
-        <Card className="border-border/50 overflow-hidden">
-          <div className="overflow-x-auto">
+      <Card className="border-border/60 overflow-hidden">
+        <div className="overflow-x-auto">
+          {isLoading ? (
+            <div className="py-10 text-sm text-muted-foreground text-center">Loading students…</div>
+          ) : (
             <table className="w-full min-w-[1100px]">
               <thead>
-                <tr className="border-b border-border bg-secondary/40">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Student</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                    <span className="flex items-center gap-1"><ArrowUpDown className="w-3 h-3" />Latest Score</span>
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Support Band</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Weekly Trend</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">3-Week Monitor</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Main Signal</th>
+                <tr className="border-b border-border bg-secondary/30">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Student name</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Latest score</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Support band</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Weekly trend sparkline</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">3-week monitor badge</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Main signal</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Next Step</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Next step</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((student, index) => {
-                  const rec = getRecommendedAction(student);
-                  const status = statusLabels[student.action_status];
+                {sortedStudents.map((student, index) => {
                   const streak = getConsecutiveDistressWeeks(student.weekly_scores);
-                  const hasFlag = hasThreeWeekDistressFlag(student.weekly_scores);
-
                   return (
-                    <tr
-                      key={student.id}
-                      className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${index % 2 === 0 ? '' : 'bg-secondary/10'}`}
-                    >
+                    <tr key={student.id} className={`border-b border-border/50 ${index % 2 === 0 ? '' : 'bg-secondary/10'}`}>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs shrink-0">
-                            {student.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{student.name}</p>
-                            <p className="text-[11px] text-muted-foreground">{student.grade} · Age {student.age}</p>
-                          </div>
-                        </div>
+                        <Link to={`/teacher/student/${student.id}`} className="text-sm font-medium text-foreground hover:text-primary">
+                          {student.name}
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <span className={`text-base font-bold ${
-                            student.risk_score >= HIGH_DISTRESS_THRESHOLD
-                              ? 'text-rose-600'
-                              : student.risk_score >= DISTRESS_THRESHOLD
-                                ? 'text-amber-600'
-                                : 'text-emerald-600'
-                          }`}>
-                            {student.risk_score}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">out of 100</span>
-                        </div>
+                        <span className={`text-base font-semibold ${
+                          student.risk_level === 'high'
+                            ? 'text-rose-700'
+                            : student.risk_level === 'medium'
+                              ? 'text-amber-700'
+                              : 'text-emerald-700'
+                        }`}>
+                          {student.risk_score}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <RiskBadge level={student.risk_level} />
-                          <span className="text-[10px] text-muted-foreground">{student.confidence}% conf.</span>
-                        </div>
+                        <RiskBadge level={student.risk_level} />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <TrendSparkline weeklyScores={student.weekly_scores} />
+                          <TrendSparkline weeklyScores={student.weekly_scores.slice(-3)} />
                           <TrendIndicator trend={student.trend} />
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        {hasFlag ? (
-                          <div className="inline-flex flex-col gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                            <span className="text-[11px] font-semibold text-amber-700">Flag active</span>
-                            <span className="text-[10px] text-amber-700/80">{streak} consecutive weeks at {DISTRESS_THRESHOLD.toFixed(2)}+</span>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">No active streak</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-foreground">{keyFactorLabel(student)}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {status ? (
-                          <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded ${status.color}`}>
-                            {status.label}
+                        {hasThreeWeekDistressFlag(student.weekly_scores) ? (
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-700">
+                            {streak} weeks elevated
                           </span>
                         ) : (
                           <span className="text-[11px] text-muted-foreground">—</span>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-xs text-foreground">{buildMainSignal(student)}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{statusLabel(student, actions)}</td>
                       <td className="px-4 py-3">
-                        <Link to={`/teacher/student/${student.id}`}>
-                          <Button size="sm" variant="outline" className="h-7 text-xs px-3">
-                            {rec.action} →
-                          </Button>
+                        <Link to={getActionRoute(student, actions)}>
+                          <Button size="sm" variant="outline">{nextStepLabel(student, actions)} →</Button>
                         </Link>
                       </td>
                     </tr>
@@ -297,12 +306,9 @@ export default function Dashboard() {
                 })}
               </tbody>
             </table>
-            {filtered.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-8">No students match the current filter.</p>
-            )}
-          </div>
-        </Card>
-      )}
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

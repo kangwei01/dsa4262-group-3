@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Heart, LayoutDashboard, Users, ShieldCheck, BarChart3, BookOpen, ListChecks, CalendarClock, ClipboardList, Mail, LogOut } from 'lucide-react';
+import { Heart, LayoutDashboard, Users, ShieldCheck, BookOpen, CalendarClock, ClipboardList, Mail, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
@@ -9,13 +9,10 @@ const teacherNav = [
   { label: 'Reminders', path: '/teacher/reminders', icon: CalendarClock },
   { label: 'Counsellor', path: '/teacher/counsellor', icon: ClipboardList },
   { label: 'Parents', path: '/teacher/communications', icon: Mail },
-  { label: 'Questions', path: '/teacher/questions', icon: ListChecks },
-  { label: 'System Logic', path: '/system-logic', icon: BarChart3 },
 ];
 
 const studentNav = [
   { label: 'Weekly Check-in', path: '/', icon: BookOpen },
-  { label: 'System Logic', path: '/system-logic', icon: BarChart3 },
 ];
 
 
@@ -27,8 +24,8 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b bg-card/90 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-16 py-3 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
               <Heart className="w-5 h-5 text-primary" />
@@ -39,7 +36,7 @@ export default function AppLayout() {
             </div>
           </Link>
 
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 flex-wrap justify-center">
             {nav.map(item => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -61,7 +58,7 @@ export default function AppLayout() {
             })}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {isTeacher && isTeacherAuthenticated && teacher && (
               <div className="hidden lg:flex items-center gap-2 mr-2 rounded-full bg-secondary px-3 py-1.5">
                 <span className="text-xs font-medium text-foreground">{teacher.name}</span>
@@ -98,12 +95,14 @@ export default function AppLayout() {
           </div>
         </div>
       </header>
-      <div className="bg-primary/5 border-b border-primary/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2 text-xs text-primary">
-          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-          <span>Your data is private and used for support. Teachers can view submitted check-ins so they can follow up appropriately.</span>
+      {isTeacher && (
+        <div className="bg-primary/5 border-b border-primary/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2 text-xs text-primary">
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+            <span>Student responses are confidential and for support purposes only.</span>
+          </div>
         </div>
-      </div>
+      )}
 
       <main className="max-w-7xl mx-auto px-6 lg:px-10 py-8">
         <Outlet />

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   authenticateStudentProfile,
+  completeFollowUpReminder,
+  createParentCommunication,
   createCounsellorCase,
   getDefaultStudent,
   getLatestCheckInByStudentId,
@@ -19,6 +21,7 @@ import {
   logTeacherAction,
   openSurveyForStudent,
   openSurveysForStudents,
+  recordStudentConsent,
   submitStudentCheckIn,
   updateCounsellorCaseStatus,
   updateParentCommunicationStatus,
@@ -128,6 +131,23 @@ export function useResolveStudentIdentifier() {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.setQueryData(['students', 'identifier', student.student_identifier], student);
       queryClient.setQueryData(['students', student.id], student);
+    },
+  });
+}
+
+export function useRecordStudentConsent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: recordStudentConsent,
+    onSuccess: (student) => {
+      if (!student) return;
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
+      queryClient.setQueryData(['students', student.id], student);
+      if (student.student_identifier) {
+        queryClient.setQueryData(['students', 'identifier', student.student_identifier], student);
+      }
     },
   });
 }
@@ -281,6 +301,32 @@ export function useCreateCounsellorCase() {
       queryClient.invalidateQueries({ queryKey: ['teacher-actions', variables.studentId] });
       queryClient.invalidateQueries({ queryKey: ['counsellor-cases'] });
       queryClient.invalidateQueries({ queryKey: ['parent-communications'] });
+    },
+  });
+}
+
+export function useCreateParentCommunication() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createParentCommunication,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['parent-communications'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions', variables.studentId] });
+    },
+  });
+}
+
+export function useCompleteFollowUpReminder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: completeFollowUpReminder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
+      queryClient.invalidateQueries({ queryKey: ['follow-up-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions'] });
     },
   });
 }

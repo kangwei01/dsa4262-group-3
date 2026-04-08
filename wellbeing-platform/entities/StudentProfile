@@ -22,6 +22,15 @@
       "type": "object",
       "description": "One-time onboarding responses used as profile context"
     },
+    "consent_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the student has already acknowledged the onboarding transparency screen"
+    },
+    "consent_completed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the student first acknowledged onboarding transparency"
+    },
     "monthly_responses": {
       "type": "object",
       "description": "Most recent monthly-refresh responses reused between weekly pulses"

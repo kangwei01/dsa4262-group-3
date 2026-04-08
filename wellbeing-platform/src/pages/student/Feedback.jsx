@@ -1,33 +1,49 @@
-import { useLocation, Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, HeartHandshake, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
-import { useCurrentStudent, useLatestStudentCheckIn } from '@/hooks/useWellbeingData';
-import { buildSupportCardsFromSignals, deriveSignalsFromCheckInAnswers } from '@/lib/rfModel';
-import { generalSupportResources } from '@/lib/wellbeingContent';
+import { ArrowRight, CheckCircle2, Phone, Globe, MessageCircleMore } from 'lucide-react';
+import { useCurrentStudent, useLatestStudentCheckIn, useStudentCheckIns } from '@/hooks/useWellbeingData';
+import {
+  buildSupportCardsFromSignals,
+  deriveSignalsFromCheckInAnswers,
+  getSupportCategoryForFeature,
+  HELPLINE_DIRECTORY,
+} from '@/lib/rfModel';
 
-export default function Feedback() {
-  const location = useLocation();
-  const {
-    studentIdentifier,
-    clearStudentIdentifier,
-    isLoading: isLoadingStudent,
-    student,
-  } = useCurrentStudent();
-  const { data: latestCheckIn, isLoading: isLoadingLatestCheckIn } = useLatestStudentCheckIn(student?.id);
-
-  const answers = location.state?.answers || {
+function buildAnswers(locationState, latestCheckIn) {
+  if (locationState?.answers) return locationState.answers;
+  return {
     ...(latestCheckIn?.monthly_responses || {}),
     ...(latestCheckIn?.answers || {}),
   };
-  const concernSignals = deriveSignalsFromCheckInAnswers(answers);
-  const supportCards = concernSignals.length > 0
-    ? buildSupportCardsFromSignals(concernSignals).slice(0, 2)
-    : buildSupportCardsFromSignals([{ feature: 'sleepdificulty' }]).slice(0, 1);
-  const savedStudentNote = latestCheckIn?.free_text || '';
+}
 
-  if (!location.state?.answers && (isLoadingStudent || isLoadingLatestCheckIn)) {
-    return <div className="py-10 text-sm text-muted-foreground">Loading your support report…</div>;
+export default function Feedback() {
+  const location = useLocation();
+  const { student, studentIdentifier, clearStudentIdentifier, isLoading: studentLoading } = useCurrentStudent();
+  const { data: latestCheckIn, isLoading: latestLoading } = useLatestStudentCheckIn(student?.id);
+  const { data: checkIns = [], isLoading: checkInsLoading } = useStudentCheckIns(student?.id);
+
+  if (!location.state?.answers && (studentLoading || latestLoading || checkInsLoading)) {
+    return <div className="py-10 text-sm text-muted-foreground">Loading your support cards…</div>;
   }
+
+  const answers = buildAnswers(location.state, latestCheckIn);
+  const currentSignals = deriveSignalsFromCheckInAnswers(answers);
+  const priorSignalSets = checkIns
+    .slice(1)
+    .map((checkIn) => {
+      const signalAnswers = {
+        ...(checkIn.monthly_responses || {}),
+        ...(checkIn.answers || {}),
+      };
+      return deriveSignalsFromCheckInAnswers(signalAnswers)
+        .map((signal) => getSupportCategoryForFeature(signal.feature))
+        .filter(Boolean);
+    });
+  const supportCards = buildSupportCardsFromSignals(
+    currentSignals.length > 0 ? currentSignals : [{ feature: 'schoolpressure', severity: 'medium' }],
+    priorSignalSets,
+  );
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-start py-8 px-4">
@@ -37,16 +53,15 @@ export default function Feedback() {
         className="w-full max-w-5xl mb-6"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5 text-accent" />
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Thanks for checking in</h1>
-            <p className="text-xs text-muted-foreground">
-              Your answers help your teachers support you earlier and more clearly.
-            </p>
+            <h1 className="text-2xl font-semibold text-foreground">Thanks for checking in</h1>
+            <p className="text-sm text-muted-foreground">This helps your teachers support you better.</p>
+            <p className="text-xs text-muted-foreground mt-1">If something seems off, your teacher may check in with you.</p>
             {studentIdentifier && (
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2">
                 <span className="text-[11px] text-muted-foreground">{studentIdentifier}</span>
                 <button onClick={clearStudentIdentifier} className="text-[11px] text-primary font-medium hover:underline">
                   Switch ID
@@ -58,93 +73,65 @@ export default function Feedback() {
       </motion.div>
 
       <div className="w-full max-w-5xl space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl border border-border bg-card p-6 shadow-sm"
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <HeartHandshake className="w-4 h-4 text-primary" />
-            <p className="text-xs font-semibold text-primary uppercase tracking-widest">What happens next</p>
-          </div>
-          <p className="text-base font-medium text-foreground leading-relaxed">
-            This check-in is here to help you. If something seems heavier than usual, your teacher may follow up so support can happen earlier.
-          </p>
-        </motion.div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {supportCards.map((card, index) => (
             <motion.div
-              key={card.featureId}
+              key={`${card.category}-${index}`}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 + index * 0.06 }}
-              className="rounded-3xl border border-border bg-card p-6 shadow-sm"
+              className="rounded-[28px] border border-border bg-card p-6 shadow-sm"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold text-primary uppercase tracking-widest">Top insight</p>
-                  <h2 className="text-lg font-semibold text-foreground mt-1">{card.title}</h2>
-                </div>
-                <span className="text-[10px] uppercase tracking-wide font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
-                  {card.severity}
-                </span>
-              </div>
-
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary">{card.categoryLabel}</p>
+              <h2 className="text-xl font-semibold text-foreground mt-2">{card.title}</h2>
               <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{card.summary}</p>
-
-              <div className="mt-4 space-y-2">
-                {card.actions.slice(0, 2).map((action) => (
-                  <div key={action} className="flex items-start gap-2 rounded-2xl bg-secondary/30 px-3 py-3">
-                    <Sparkles className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-                    <p className="text-sm text-foreground">{action}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/[0.03] px-4 py-3">
-                <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">Why this matters for you</p>
-                <p className="text-sm text-foreground leading-relaxed">{card.reachOut}</p>
-              </div>
+              <a
+                href={card.link}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary mt-5 hover:underline"
+              >
+                Read more
+                <ArrowRight className="w-4 h-4" />
+              </a>
             </motion.div>
           ))}
         </div>
 
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageCircle className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Simple resources you can use this week</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {generalSupportResources.map((resource) => (
-              <div key={resource.title} className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                <p className="text-sm font-semibold text-foreground">{resource.title}</p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{resource.description}</p>
-                <div className="mt-3 space-y-2">
-                  {resource.actions.map((action) => (
-                    <div key={action} className="text-sm text-foreground flex items-start gap-2">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                      <span>{action}</span>
-                    </div>
-                  ))}
-                </div>
+        <div className="rounded-[32px] border border-border bg-[#f7f0df] px-6 py-7 shadow-sm">
+          <h2 className="text-3xl font-semibold text-foreground">First Stop for Mental Health</h2>
+          <p className="text-sm text-foreground/80 mt-3">{HELPLINE_DIRECTORY.intro}</p>
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-foreground/20 bg-white/40 px-5 py-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-foreground" />
+                <span className="text-sm font-medium text-foreground">National mindline (24-hour)</span>
               </div>
-            ))}
+              <span className="text-sm font-semibold text-foreground">{HELPLINE_DIRECTORY.mindlineCall}</span>
+            </div>
+            <div className="rounded-2xl border border-foreground/20 bg-white/40 px-5 py-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <MessageCircleMore className="w-4 h-4 text-foreground" />
+                <span className="text-sm font-medium text-foreground">WhatsApp</span>
+              </div>
+              <span className="text-sm font-semibold text-foreground">{HELPLINE_DIRECTORY.mindlineWhatsapp}</span>
+            </div>
+            <div className="rounded-2xl border border-foreground/20 bg-white/40 px-5 py-4 flex items-center justify-between gap-3 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-foreground" />
+                <span className="text-sm font-medium text-foreground">mindline.sg</span>
+              </div>
+              <a
+                href={HELPLINE_DIRECTORY.mindlineSite}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-semibold text-foreground hover:underline"
+              >
+                free online mental health support
+              </a>
+            </div>
           </div>
-        </div>
-
-        {savedStudentNote && (
-          <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Your saved note</p>
-            <p className="text-sm text-foreground leading-relaxed">{savedStudentNote}</p>
-          </div>
-        )}
-
-        <div className="flex items-start gap-2 px-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            This page avoids showing a score directly. The goal is to keep the check-in helpful, simple, and not overwhelming.
-          </p>
         </div>
 
         <div className="flex justify-end">

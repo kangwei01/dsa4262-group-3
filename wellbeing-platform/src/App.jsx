@@ -15,6 +15,7 @@ import StudentsPage from './pages/teacher/StudentsPage';
 import StudentDetail from './pages/teacher/StudentDetail';
 import GuidedCheckIn from './pages/teacher/GuidedCheckIn';
 import Escalation from './pages/teacher/Escalation';
+import ParentContact from './pages/teacher/ParentContact';
 import QuestionsDashboard from './pages/teacher/QuestionsDashboard';
 import SystemLogic from './pages/SystemLogic';
 import TeacherLogin from './pages/teacher/TeacherLogin';
@@ -128,6 +129,14 @@ const AuthenticatedApp = () => {
           element={(
             <TeacherProtectedRoute>
               <Escalation />
+            </TeacherProtectedRoute>
+          )}
+        />
+        <Route
+          path="/teacher/student/:id/parents"
+          element={(
+            <TeacherProtectedRoute>
+              <ParentContact />
             </TeacherProtectedRoute>
           )}
         />

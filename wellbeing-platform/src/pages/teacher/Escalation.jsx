@@ -1,16 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, AlertTriangle, Send, ShieldCheck } from 'lucide-react';
-import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
 import { useCreateCounsellorCase, useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
-import { getConsecutiveDistressWeeks } from '@/lib/rfModel';
-import { buildParentMessage } from '@/lib/wellbeingContent';
+import { formatSignalLabel } from '@/lib/rfModel';
 import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 export default function Escalation() {
@@ -22,142 +21,137 @@ export default function Escalation() {
   const { data: teacherActions = [] } = useTeacherActions(id);
   const createCounsellorCase = useCreateCounsellorCase();
   const [additionalNotes, setAdditionalNotes] = useState('');
-  const [parentContact, setParentContact] = useState(false);
-  const [confirmEscalation, setConfirmEscalation] = useState(false);
-  const [parentMessage, setParentMessage] = useState('');
-  const distressStreak = getConsecutiveDistressWeeks(student?.weekly_scores || []);
-  const autoSummary = useMemo(() => {
-    if (!student) return '';
+  const [confirmed, setConfirmed] = useState(false);
 
-    return `Student ${student.name} (${student.grade}, age ${student.age}) is being reviewed for counsellor escalation.\n\nSupport band: ${student.risk_level.toUpperCase()}\nRisk score: ${student.risk_score}/100\nTrend: ${student.trend}\nConfidence: ${student.confidence}%\nConsecutive monitored weeks: ${distressStreak}\n\nKey signals:\n${student.key_factors.map((factor) => `• ${factor.factor}: ${factor.direction} (${factor.severity} severity)`).join('\n')}\n\nWeekly score progression:\n${student.weekly_scores.map((week) => `${week.week}: ${week.score}`).join(' → ')}`;
-  }, [distressStreak, student]);
-
-  useEffect(() => {
-    if (student && !parentMessage) {
-      setParentMessage(buildParentMessage(student));
-    }
-  }, [parentMessage, student]);
+  const latestCheckIn = checkIns[0] || null;
+  const summary = useMemo(() => {
+    if (!student) return null;
+    return {
+      name: student.name,
+      age: student.age,
+      supportBand: student.risk_level,
+      currentScore: student.risk_score,
+      trend: `${student.trend} across the last ${(student.weekly_scores || []).slice(-3).length || 0} recorded weeks`,
+      mainSignals: (student.key_factors || []).slice(0, 2).map((signal) => formatSignalLabel(signal.feature || signal.factor)),
+      studentNote: latestCheckIn?.free_text || 'No student note added this week.',
+      previousActions: teacherActions.slice(0, 4),
+    };
+  }, [latestCheckIn?.free_text, student, teacherActions]);
 
   if (isLoading) {
-    return <div className="max-w-3xl mx-auto py-10 text-sm text-muted-foreground">Loading escalation summary…</div>;
+    return <div className="py-10 text-sm text-muted-foreground">Loading escalation summary…</div>;
   }
 
-  if (!student) return null;
+  if (!student || !summary) return null;
 
-  const handleRefer = async () => {
+  const handleEscalate = async () => {
     await createCounsellorCase.mutateAsync({
       studentId: student.id,
       teacherEmail: teacher?.teacher_identifier || student.assigned_teacher || 'wellbeing@school.edu',
       additionalNotes,
-      parentContact,
-      parentMessage,
+      parentContact: false,
       createdByRole: teacher?.role || 'teacher',
     });
-
-    toast.success('Escalation logged successfully');
+    toast.success('Escalation confirmed.');
     navigate(`/teacher/student/${student.id}`);
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
         <Link to={`/teacher/student/${student.id}`}>
-          <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
         </Link>
         <div>
-          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-            Escalate to Counsellor
-          </h1>
-          <p className="text-sm text-muted-foreground">Review summary, confirm escalation, and send the full support file.</p>
+          <h1 className="text-2xl font-semibold text-foreground">Escalate to counsellor</h1>
+          <p className="text-sm text-muted-foreground">Review summary and confirm escalation</p>
         </div>
       </div>
 
-      <Card className="mb-6 border-destructive/20">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-              {student.name.charAt(0)}
-            </div>
+      <Card className="border-border/60">
+        <CardContent className="p-6 space-y-5">
+          <div className="flex items-center gap-3">
             <div>
-              <p className="font-semibold text-foreground">{student.name}</p>
-              <div className="flex items-center gap-2">
+              <p className="text-lg font-semibold text-foreground">{summary.name}</p>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-sm text-muted-foreground">Age {summary.age}</span>
                 <RiskBadge level={student.risk_level} />
                 <TrendIndicator trend={student.trend} />
               </div>
             </div>
           </div>
 
-          <div className="bg-secondary/50 rounded-lg p-4">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Escalation summary</h4>
-            <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{autoSummary}</pre>
-            <p className="text-[11px] text-muted-foreground mt-3">
-              This handoff will include {checkIns.length} check-ins and {teacherActions.length} teacher actions in the counsellor file.
-            </p>
+          <div className="rounded-2xl border border-border/60 bg-secondary/20 p-5 space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Auto-generated student summary</p>
+              <p className="text-sm text-foreground mt-2">Support band: {summary.supportBand}</p>
+              <p className="text-sm text-foreground">Current score: {summary.currentScore}</p>
+              <p className="text-sm text-foreground">3-week trend summary: {summary.trend}</p>
+              <p className="text-sm text-foreground">Main signals: {summary.mainSignals.join(' · ') || 'No dominant signal yet'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Student note</p>
+              <p className="text-sm text-foreground mt-2 leading-relaxed">{summary.studentNote}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Previous teacher actions logged</p>
+              <div className="mt-2 space-y-2">
+                {summary.previousActions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No previous teacher actions recorded.</p>
+                ) : (
+                  summary.previousActions.map((action) => (
+                    <div key={action.id || `${action.action_type}-${action.created_at || ''}`} className="rounded-xl border border-border/60 bg-card p-3">
+                      <p className="text-sm font-medium text-foreground">{action.action_type.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{action.created_at ? new Date(action.created_at).toLocaleString() : 'Saved action'}</p>
+                      <p className="text-sm text-foreground mt-2">{action.notes || action.referral_summary || 'No notes recorded.'}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="mb-6">
-        <CardContent className="p-5">
-          <label className="text-sm font-medium text-foreground mb-2 block">Additional teacher notes</label>
+      <Card className="border-border/60">
+        <CardContent className="p-6 space-y-4">
+          <label className="text-sm font-medium text-foreground">Suggested draft for teacher review</label>
           <Textarea
-            placeholder="Add any context the counsellor should know..."
             value={additionalNotes}
             onChange={(event) => setAdditionalNotes(event.target.value)}
-            className="min-h-[110px]"
+            placeholder="Add any extra context the counsellor should know before you send this."
+            className="min-h-[160px]"
           />
         </CardContent>
       </Card>
 
-      <Card className="mb-6 border-amber-200 bg-amber-50/30">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
-            <h3 className="font-semibold text-sm text-amber-700">Parent communication</h3>
-          </div>
-          <p className="text-xs text-amber-700/80 mb-3">
-            Use a neutral, non-alarmist tone. This message stays editable before it is logged.
-          </p>
-          <div className="flex items-center gap-3 mb-3">
-            <Checkbox checked={parentContact} onCheckedChange={setParentContact} id="parentContact" />
-            <label htmlFor="parentContact" className="text-sm text-amber-700 cursor-pointer">
-              Prepare parent communication as part of this escalation
-            </label>
-          </div>
-          {parentContact && (
-            <Textarea
-              value={parentMessage}
-              onChange={(event) => setParentMessage(event.target.value)}
-              className="min-h-[160px] bg-white"
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="mb-6 border-border/60">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-3">
-            <Checkbox checked={confirmEscalation} onCheckedChange={setConfirmEscalation} id="confirmEscalation" />
-            <label htmlFor="confirmEscalation" className="text-sm text-foreground cursor-pointer">
-              I have reviewed the student summary and want to send this full support file to the counsellor.
-            </label>
+      <Card className="border-amber-200 bg-amber-50/40">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">
+                Review and confirm escalation
+              </p>
+              <div className="flex items-start gap-3">
+                <Checkbox id="confirm-escalation" checked={confirmed} onCheckedChange={(value) => setConfirmed(Boolean(value))} className="mt-1" />
+                <label htmlFor="confirm-escalation" className="text-sm text-foreground cursor-pointer">
+                  Are you sure you want to escalate this student to the counsellor? This will share the above summary with the school counsellor.
+                </label>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Button
-        onClick={handleRefer}
-        disabled={createCounsellorCase.isPending || !confirmEscalation}
-        className="w-full gap-2"
-        variant="destructive"
+        onClick={handleEscalate}
+        disabled={!confirmed || createCounsellorCase.isPending}
+        className="w-full"
       >
-        {createCounsellorCase.isPending ? (
-          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-        ) : (
-          <Send className="w-4 h-4" />
-        )}
-        Confirm escalation
+        Review and confirm escalation
       </Button>
     </div>
   );

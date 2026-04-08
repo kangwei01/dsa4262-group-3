@@ -151,6 +151,8 @@ function normalizeStudentProfile(student, source = BACKEND_SOURCE) {
     key_factors: (student.key_factors || []).map(enrichKeyFactor),
     weekly_scores,
     baseline_responses,
+    consent_completed: Boolean(student.consent_completed ?? student.onboarding_completed ?? hasCompletedOnboarding(baseline_responses)),
+    consent_completed_at: student.consent_completed_at || student.onboarding_completed_at || null,
     monthly_responses,
     onboarding_completed: Boolean(student.onboarding_completed ?? hasCompletedOnboarding(baseline_responses)),
     onboarding_completed_at: student.onboarding_completed_at || null,
@@ -200,30 +202,35 @@ function buildLocalDraftStudents() {
   return readLocalDraftProfiles().map((student) => normalizeStudentProfile(student, FALLBACK_SOURCE));
 }
 
-function buildFallbackStudents() {
-  const seedStudents = buildSeedFallbackStudents();
-  const localStudents = buildLocalDraftStudents();
-  const localByIdentifier = new Map(
-    localStudents
+function mergeStudentsByIdentifier(primaryStudents = [], overrideStudents = []) {
+  const overrideByIdentifier = new Map(
+    overrideStudents
       .map((student) => [normalizeStudentIdentifier(student.student_identifier || ''), student])
       .filter(([identifier]) => Boolean(identifier)),
   );
 
-  const mergedSeeds = seedStudents.map((student) => {
+  const mergedPrimary = primaryStudents.map((student) => {
     const identifier = normalizeStudentIdentifier(student.student_identifier || '');
-    return localByIdentifier.get(identifier) || student;
+    return overrideByIdentifier.get(identifier) || student;
   });
 
-  const seedIdentifiers = new Set(
-    seedStudents.map((student) => normalizeStudentIdentifier(student.student_identifier || '')),
+  const primaryIdentifiers = new Set(
+    primaryStudents.map((student) => normalizeStudentIdentifier(student.student_identifier || '')),
   );
 
-  const localOnlyStudents = localStudents.filter((student) => {
+  const overrideOnly = overrideStudents.filter((student) => {
     const identifier = normalizeStudentIdentifier(student.student_identifier || '');
-    return !identifier || !seedIdentifiers.has(identifier);
+    return !identifier || !primaryIdentifiers.has(identifier);
   });
 
-  return [...mergedSeeds, ...localOnlyStudents];
+  return [...mergedPrimary, ...overrideOnly];
+}
+
+function buildFallbackStudents() {
+  return mergeStudentsByIdentifier(
+    buildSeedFallbackStudents(),
+    buildLocalDraftStudents(),
+  );
 }
 
 function upsertLocalDraftProfile(profile) {
@@ -414,15 +421,10 @@ export async function listStudents() {
     if (students.length === 0) {
       return buildFallbackStudents();
     }
-    const remoteStudents = students.map((student) => normalizeStudentProfile(student, BACKEND_SOURCE));
-    const remoteIdentifiers = new Set(
-      remoteStudents.map((student) => normalizeStudentIdentifier(student.student_identifier || '')),
+    return mergeStudentsByIdentifier(
+      students.map((student) => normalizeStudentProfile(student, BACKEND_SOURCE)),
+      buildLocalDraftStudents(),
     );
-    const localOnlyStudents = buildLocalDraftStudents().filter((student) => {
-      const identifier = normalizeStudentIdentifier(student.student_identifier || '');
-      return !identifier || !remoteIdentifiers.has(identifier);
-    });
-    return [...remoteStudents, ...localOnlyStudents];
   } catch (error) {
     console.warn('Falling back to local student seed data:', error);
     return buildFallbackStudents();
@@ -431,8 +433,12 @@ export async function listStudents() {
 
 export async function getStudentById(studentId) {
   try {
-    const student = await backendClient.entities.StudentProfile.get(studentId);
-    return normalizeStudentProfile(student, BACKEND_SOURCE);
+    const student = normalizeStudentProfile(await backendClient.entities.StudentProfile.get(studentId), BACKEND_SOURCE);
+    const localOverride = buildLocalDraftStudents().find((item) => (
+      item.id === student.id
+      || normalizeStudentIdentifier(item.student_identifier || '') === normalizeStudentIdentifier(student.student_identifier || '')
+    ));
+    return localOverride || student;
   } catch (error) {
     const fallback = buildFallbackStudents().find((student) => student.id === studentId);
     if (fallback) return fallback;
@@ -564,6 +570,8 @@ export async function authenticateStudentProfile({ identifier, passcode }) {
     key_factors: [],
     weekly_scores: [],
     baseline_responses: {},
+    consent_completed: false,
+    consent_completed_at: null,
     monthly_responses: {},
     onboarding_completed: false,
     onboarding_completed_at: null,
@@ -591,6 +599,34 @@ export async function authenticateStudentProfile({ identifier, passcode }) {
 export async function getLatestCheckInByStudentId(studentId) {
   const checkIns = await listStudentCheckInsByStudentId(studentId);
   return checkIns[0] || null;
+}
+
+export async function recordStudentConsent(studentId) {
+  const student = await getStudentById(studentId);
+  if (!student) return null;
+
+  const update = {
+    consent_completed: true,
+    consent_completed_at: new Date().toISOString(),
+  };
+
+  if (student.source === FALLBACK_SOURCE || String(studentId).startsWith('local_')) {
+    return upsertLocalDraftProfile({
+      ...student,
+      ...update,
+    });
+  }
+
+  try {
+    const updated = await backendClient.entities.StudentProfile.update(studentId, update);
+    return normalizeStudentProfile(updated, BACKEND_SOURCE);
+  } catch (error) {
+    console.warn('Unable to persist student consent in backend:', error);
+    return upsertLocalDraftProfile({
+      ...student,
+      ...update,
+    });
+  }
 }
 
 export async function listStudentCheckInsByStudentId(studentId) {
@@ -655,6 +691,7 @@ export async function listFollowUpQueue({ teacherEmail, allowAll = false } = {})
       student_id: student.id,
       student_name: student.name,
       teacher_email: student.assigned_teacher,
+      reminder_type: student.risk_level === 'high' ? 'Flagged review' : 'Monitor review',
       due_at: student.next_follow_up_at,
       note: student.next_follow_up_note || 'Review wellbeing pattern',
       risk_level: student.risk_level,
@@ -716,6 +753,21 @@ function deriveNextActionStatus(currentStatus, nextRiskLevel, computedScore) {
   if (currentStatus === 'check_in_completed' && nextRiskLevel === 'low') return 'check_in_completed';
   if (computedScore >= MONITOR_THRESHOLD) return 'monitoring';
   return 'none';
+}
+
+function deriveTeacherActionStatus(currentStatus, actionType, completed) {
+  if (actionType === 'open_survey') return currentStatus;
+  if (actionType === 'refer_counsellor') return 'referred';
+  if (actionType === 'check_in') {
+    return completed ? 'check_in_completed' : 'check_in_scheduled';
+  }
+  if (actionType === 'monitor') {
+    if (currentStatus === 'check_in_completed' || currentStatus === 'check_in_scheduled') {
+      return currentStatus;
+    }
+    return 'monitoring';
+  }
+  return currentStatus;
 }
 
 export async function submitStudentCheckIn({ studentId, answers, freeText, week, surveyType }) {
@@ -1051,6 +1103,7 @@ export async function logTeacherAction({
   generatedParentMessage = '',
   escalationPayload = null,
   teacherEmail,
+  replaceFollowUp = false,
 }) {
   const currentStudent = await getStudentById(studentId);
   let action = null;
@@ -1086,17 +1139,12 @@ export async function logTeacherAction({
     console.warn('TeacherAction create failed; returning non-persisted result:', error);
     const localAction = appendLocalTeacherAction(localActionRecord);
     if (currentStudent) {
-      const nextStatus =
-        actionType === 'open_survey' ? currentStudent.action_status
-          : actionType === 'refer_counsellor' ? 'referred'
-            : actionType === 'check_in' ? (completed ? 'check_in_completed' : 'check_in_scheduled')
-              : actionType === 'monitor' ? 'monitoring'
-                : currentStudent.action_status;
+      const nextStatus = deriveTeacherActionStatus(currentStudent.action_status, actionType, completed);
       upsertLocalDraftProfile({
         ...currentStudent,
         action_status: nextStatus,
-        next_follow_up_at: followUpDueAt || currentStudent.next_follow_up_at || null,
-        next_follow_up_note: notes || currentStudent.next_follow_up_note || '',
+        next_follow_up_at: replaceFollowUp ? (followUpDueAt || null) : (followUpDueAt || currentStudent.next_follow_up_at || null),
+        next_follow_up_note: replaceFollowUp ? (notes || '') : (notes || currentStudent.next_follow_up_note || ''),
       });
     }
     return localAction;
@@ -1104,18 +1152,12 @@ export async function logTeacherAction({
 
   try {
     const student = currentStudent || await backendClient.entities.StudentProfile.get(studentId);
-    const nextStatus =
-      actionType === 'open_survey' ? student.action_status
-        :
-      actionType === 'refer_counsellor' ? 'referred'
-        : actionType === 'check_in' ? (completed ? 'check_in_completed' : 'check_in_scheduled')
-          : actionType === 'monitor' ? 'monitoring'
-            : student.action_status;
+    const nextStatus = deriveTeacherActionStatus(student.action_status, actionType, completed);
 
     const profileUpdate = {
       action_status: nextStatus,
-      next_follow_up_at: followUpDueAt || student.next_follow_up_at || null,
-      next_follow_up_note: notes || student.next_follow_up_note || '',
+      next_follow_up_at: replaceFollowUp ? (followUpDueAt || null) : (followUpDueAt || student.next_follow_up_at || null),
+      next_follow_up_note: replaceFollowUp ? (notes || '') : (notes || student.next_follow_up_note || ''),
     };
 
     if (student.source === FALLBACK_SOURCE || String(studentId).startsWith('local_')) {
@@ -1128,9 +1170,54 @@ export async function logTeacherAction({
     }
   } catch (error) {
     console.warn('Teacher action saved but StudentProfile status sync failed:', error);
+    if (currentStudent) {
+      const nextStatus = deriveTeacherActionStatus(currentStudent.action_status, actionType, completed);
+      upsertLocalDraftProfile({
+        ...currentStudent,
+        action_status: nextStatus,
+        next_follow_up_at: replaceFollowUp ? (followUpDueAt || null) : (followUpDueAt || currentStudent.next_follow_up_at || null),
+        next_follow_up_note: replaceFollowUp ? (notes || '') : (notes || currentStudent.next_follow_up_note || ''),
+      });
+    }
   }
 
   return action;
+}
+
+export async function completeFollowUpReminder({
+  studentId,
+  teacherEmail,
+}) {
+  const student = await getStudentById(studentId);
+  if (!student) {
+    throw new Error('Student profile not found for reminder update.');
+  }
+
+  const update = {
+    next_follow_up_at: null,
+    next_follow_up_note: '',
+  };
+
+  if (student.source === FALLBACK_SOURCE || String(studentId).startsWith('local_')) {
+    upsertLocalDraftProfile({
+      ...student,
+      ...update,
+    });
+  } else {
+    await backendClient.entities.StudentProfile.update(studentId, update);
+  }
+
+  await logTeacherAction({
+    studentId,
+    actionType: 'monitor',
+    notes: 'Follow-up reminder marked complete.',
+    outcome: 'pending',
+    completed: true,
+    teacherEmail,
+    replaceFollowUp: true,
+  });
+
+  return true;
 }
 
 export async function createParentCommunication({
@@ -1239,13 +1326,15 @@ export async function createCounsellorCase({
     listStudentCheckInsByStudentId(studentId),
     listTeacherActionsByStudentId(studentId),
   ]);
+  const latestCheckIn = checkIns[0] || null;
 
   const payload = {
     ...buildEscalationPayload(student, additionalNotes),
     student_check_ins: checkIns,
     teacher_actions: actions,
   };
-  const summary = `${student.name} flagged for counsellor review with ${student.risk_score}/100 risk score and ${student.key_factors.slice(0, 2).map((item) => item.factor).join(' + ') || 'no single dominant signal'}.`;
+  payload.student_note = latestCheckIn?.free_text || '';
+  const summary = `${student.name} is being referred for counsellor review. Current score ${student.risk_score}/100, support band ${student.risk_level}, main signals ${student.key_factors.slice(0, 2).map((item) => item.factor).join(' + ') || 'not yet clear'}.`;
   const caseRecord = {
     id: `case_${studentId}_${Date.now()}`,
     student_id: studentId,

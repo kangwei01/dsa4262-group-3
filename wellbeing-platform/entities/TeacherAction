@@ -24,6 +24,10 @@
     "outcome": {
       "type": "string",
       "enum": [
+        "student_receptive",
+        "student_closed",
+        "referred_to_counsellor",
+        "no_follow_up_needed",
         "improved",
         "same",
         "worse",

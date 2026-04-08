@@ -1,138 +1,3 @@
-const supportPlaybooks = {
-  sleep_recovery: {
-    title: 'Sleep reset support',
-    summary: 'Sleep difficulty is one of the strongest early signals in the RF model, so small changes here can have a big downstream effect.',
-    methodology: 'Use a light-touch sleep hygiene routine: consistent wake time, calmer wind-down, and less stimulation before bed.',
-    actions: [
-      'Keep the same wake-up time for the next 3 school days, even if bedtime was rough.',
-      'Try a 20-minute wind-down: shower, stretch, music, or reading instead of fast phone scrolling.',
-      'If your mind feels busy at night, write down tomorrow’s tasks so they are not looping in your head.',
-    ],
-    reachOut: 'If sleep stays difficult for 2 weeks or daytime exhaustion is affecting school, reach out to a parent, teacher, counsellor, or doctor.',
-    teacherNote: 'Notice fatigue, lateness, difficulty concentrating early in the day, or a sudden drop in classroom stamina.',
-  },
-  physical_signal: {
-    title: 'Listen to physical warning signs',
-    summary: 'Repeated aches, dizziness, or feeling run-down can be a genuine health issue or the body’s way of signalling overload.',
-    methodology: 'Use symptom tracking plus gentle regulation: hydration, rest, and checking what else was happening that day.',
-    actions: [
-      'Track when the ache shows up and what was happening just before it.',
-      'Aim for regular water, meals, and a short movement break during the day.',
-      'If symptoms come with stress, try slow breathing for 2 minutes before class or revision.',
-    ],
-    reachOut: 'If symptoms are frequent, painful, or getting worse, tell a trusted adult and consider a medical review.',
-    teacherNote: 'When physical complaints cluster with sleep or pressure signals, ask whether workload, attendance, or home stress has changed.',
-  },
-  general_health: {
-    title: 'Protect your baseline health',
-    summary: 'A lower health rating often shows up alongside stress, low energy, and reduced resilience across the week.',
-    methodology: 'Focus on recovery basics first: sleep, food, movement, and one supportive conversation.',
-    actions: [
-      'Choose one recovery habit for this week: better sleep, better breakfast, or a short walk after school.',
-      'Reduce one avoidable stressor where possible, even if only for a few days.',
-      'Let one trusted adult know if you have been feeling physically or mentally worn down.',
-    ],
-    reachOut: 'If you keep feeling unwell or your energy is falling week after week, ask for extra support early.',
-    teacherNote: 'Pair this with attendance, tiredness, and classroom engagement before deciding whether to monitor or check in.',
-  },
-  school_pressure: {
-    title: 'Reduce school pressure in smaller steps',
-    summary: 'School pressure is a reliable distress signal, especially when it sits alongside low sleep or low support.',
-    methodology: 'Use structured task breakdown: one priority, one next step, one realistic study block.',
-    actions: [
-      'Pick the single most urgent task and decide the first 10-minute step only.',
-      'Use a short focus cycle: 25 minutes on, 5 minutes off, repeated twice.',
-      'Ask a teacher to help you sequence deadlines if everything feels urgent at once.',
-    ],
-    reachOut: 'If workload feels unmanageable for more than a week, ask for help before you fall behind further.',
-    teacherNote: 'Watch for avoidance, missing work, or visible overwhelm near deadlines rather than waiting for a full crisis.',
-  },
-  school_belonging: {
-    title: 'Strengthen your sense of belonging at school',
-    summary: 'Feeling less accepted, less supported, or less trusting of school adults can quietly raise distress over time.',
-    methodology: 'Use belonging cues: one safe adult, one predictable routine, one peer connection point.',
-    actions: [
-      'Choose one teacher or school adult you feel safest approaching if you need support.',
-      'Sit with or message one classmate you usually feel okay around this week.',
-      'Notice one part of school that still feels manageable and anchor your routine around it.',
-    ],
-    reachOut: 'If school starts feeling unsafe, isolating, or hard to face, speak to a trusted adult in school quickly.',
-    teacherNote: 'A student can look compliant while still feeling disconnected. Ask about belonging, not just behaviour.',
-  },
-  friendship_support: {
-    title: 'Lean on one trusted connection',
-    summary: 'Peer support matters most when the student feels they can count on someone, not just when they have lots of contact.',
-    methodology: 'Use low-pressure social reconnection instead of waiting to feel fully ready.',
-    actions: [
-      'Reach out to one person you usually feel safe with, even with a very short message.',
-      'Choose a low-pressure social plan: walking together, sitting together, or a short call.',
-      'If talking feels hard, start by saying you had a rough week rather than explaining everything.',
-    ],
-    reachOut: 'If you feel isolated or unsupported for more than a week, tell an adult rather than carrying it alone.',
-    teacherNote: 'Look for withdrawal from usual friendship groups, silent lunchtimes, or group work avoidance.',
-  },
-  bullying_safety: {
-    title: 'Treat bullying as a safety issue',
-    summary: 'Being bullied is a direct distress signal. Students should not be expected to handle it alone.',
-    methodology: 'Use documentation, adult support, and rapid escalation instead of self-managing repeated harm.',
-    actions: [
-      'Write down what happened, when it happened, and who was involved.',
-      'Save screenshots or messages if the behaviour is online.',
-      'Tell a trusted adult in school as soon as possible, even if you are unsure whether it “counts”.',
-    ],
-    reachOut: 'If there is repeated bullying, threats, or fear about coming to school, ask for adult support immediately.',
-    teacherNote: 'Move quickly from “watching” to active safeguarding when peer harm appears across more than one week.',
-  },
-  family_support: {
-    title: 'Build a safer support conversation at home',
-    summary: 'Family support and ease of talking at home are strong protective features in the model.',
-    methodology: 'Use a scripted check-in: what happened, how it felt, and what kind of help would be useful.',
-    actions: [
-      'Start small: “I’ve had a rough week and I don’t need a solution yet, just someone to listen.”',
-      'If talking face to face is hard, send a message first or ask for a short walk together.',
-      'Be specific about the help you want: listening, practical help, or help contacting school.',
-    ],
-    reachOut: 'If home does not feel like a safe place to ask for support, reach out to another trusted adult instead.',
-    teacherNote: 'Students with low family support may still minimise problems. Offer concrete follow-up rather than a one-off check-in.',
-  },
-  online_habits: {
-    title: 'Make online time feel safer and lighter',
-    summary: 'Online communication can support wellbeing, but compare-and-scroll patterns can also intensify distress.',
-    methodology: 'Reduce emotional load online: fewer triggering inputs, more intentional contact.',
-    actions: [
-      'Mute or unfollow accounts that reliably make you feel worse about yourself.',
-      'Set one short window to check social apps instead of dipping in constantly.',
-      'Use online spaces to contact people who support you, not just to scroll passively.',
-    ],
-    reachOut: 'If online interactions are upsetting, coercive, or linked to bullying, tell an adult and save the evidence.',
-    teacherNote: 'Ask whether the issue is connection, comparison, or online conflict. Each needs a different response.',
-  },
-  self_image: {
-    title: 'Handle body-image pressure gently',
-    summary: 'Body dissatisfaction can quietly affect mood, confidence, and willingness to seek support.',
-    methodology: 'Shift from appearance judgement to body neutrality and reduced comparison triggers.',
-    actions: [
-      'Notice comparison triggers and take a short break from them this week.',
-      'Use neutral language about your body instead of harsh labels.',
-      'Choose one activity that makes you feel physically capable rather than evaluated.',
-    ],
-    reachOut: 'If body image is affecting eating, exercise, or self-worth, talk to a counsellor or trusted adult early.',
-    teacherNote: 'Watch for avoidance of PE, appearance-focused teasing, or sharp changes in self-confidence.',
-  },
-  movement_nutrition: {
-    title: 'Use meals and movement as stabilisers',
-    summary: 'Breakfast, physical activity, and food habits are lower-intensity signals individually, but together they help stabilise energy and mood.',
-    methodology: 'Aim for sustainable routines, not perfect ones: one consistent meal and one predictable movement slot.',
-    actions: [
-      'Try not to skip breakfast on school days this week, even if it is something simple.',
-      'Add one short movement block you can repeat, such as walking, stretching, or light exercise.',
-      'If snacks and soft drinks are replacing meals, try pairing them with something more filling.',
-    ],
-    reachOut: 'If appetite, exercise, or energy feels hard to regulate, speak to a trusted adult instead of trying to fix everything alone.',
-    teacherNote: 'Watch for skipped meals, low energy after recess, or gradual disengagement from PE or co-curriculars.',
-  },
-};
-
 const featureDefinitions = [
   {
     feature: 'grp_aches',
@@ -140,7 +5,7 @@ const featureDefinitions = [
     category: 'physical',
     cadence: 'weekly',
     importance: 0.22097917769986825,
-    question: 'In the past 7 days, how often have headaches, stomachaches, backaches, or dizziness been bothering you?',
+    question: 'In the past 7 days, how often did you have headaches, stomachaches, backaches, or feel dizzy?',
     sourceCols: ['headache', 'stomachache', 'backache', 'dizzy'],
     isGroupedComposite: true,
     groupedFrom: ['Headache', 'Stomach ache', 'Back ache', 'Feeling dizzy'],
@@ -153,7 +18,7 @@ const featureDefinitions = [
     category: 'physical',
     cadence: 'weekly',
     importance: 0.14510530393910856,
-    question: 'In the past 7 days, how often has it been hard for you to fall asleep or stay asleep?',
+    question: 'In the past 7 days, how often was it hard for you to fall asleep or stay asleep?',
     sourceCols: ['sleepdificulty'],
     aggregationMethod: 'raw',
     supportKey: 'sleep_recovery',
@@ -164,7 +29,7 @@ const featureDefinitions = [
     category: 'physical',
     cadence: 'monthly',
     importance: 0.06676630767142021,
-    question: 'Over the past 4 weeks, how has your overall health felt?',
+    question: 'Over the past 4 weeks, how would you describe your overall health?',
     sourceCols: ['health'],
     aggregationMethod: 'raw',
     supportKey: 'general_health',
@@ -175,7 +40,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.05760702829951625,
-    question: 'Over the past 4 weeks, when you needed it, how supported have you felt by your family emotionally or through being able to talk things through?',
+    question: 'Over the past 4 weeks, when you needed support, how supported have you felt by your family?',
     sourceCols: ['famsup', 'famtalk'],
     isGroupedComposite: true,
     groupedFrom: ['Get emotional help from family', 'Talk about problems with family'],
@@ -188,7 +53,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'weekly',
     importance: 0.04139347092609204,
-    question: 'In the past 7 days, how much has schoolwork felt like pressure in your life?',
+    question: 'In the past 7 days, how pressured did you feel by schoolwork?',
     sourceCols: ['schoolpressure'],
     aggregationMethod: 'raw',
     supportKey: 'school_pressure',
@@ -199,7 +64,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.03761582386316818,
-    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it have been to talk to your father about it?',
+    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it be for you to talk to your father about it?',
     sourceCols: ['talkfather'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -243,7 +108,7 @@ const featureDefinitions = [
     category: 'digital',
     cadence: 'weekly',
     importance: 0.02056025326106545,
-    question: 'In the past 7 days, did you turn to social media to escape negative feelings at least once?',
+    question: 'In the past 7 days, did you use social media to feel better when you were upset?',
     sourceCols: ['emcsocmed8'],
     aggregationMethod: 'raw',
     supportKey: 'online_habits',
@@ -280,7 +145,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.020023417541704263,
-    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it have been to talk to your mother about it?',
+    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it be for you to talk to your mother about it?',
     sourceCols: ['talkmother'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -352,7 +217,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'monthly',
     importance: 0.017613688432021598,
-    question: 'Over the past 4 weeks, how has school generally felt for you?',
+    question: 'Over the past 4 weeks, how have you felt about school?',
     sourceCols: ['likeschool'],
     aggregationMethod: 'raw',
     supportKey: 'school_belonging',
@@ -389,7 +254,7 @@ const featureDefinitions = [
     category: 'peer',
     cadence: 'weekly',
     importance: 0.016068146901689083,
-    question: 'In the past 7 days, how often have you been bullied or targeted, whether in school or online?',
+    question: 'In the past 7 days, how often were you bullied, either in school or online?',
     sourceCols: ['beenbullied', 'cbeenbullied'],
     isGroupedComposite: true,
     groupedFrom: ['Been bullied at school', 'Been cyberbullied'],
@@ -531,19 +396,19 @@ export const cadenceLabels = {
 };
 
 const symptomFrequencyOptions = [
-  { value: 5, label: 'Never' },
-  { value: 4, label: 'Once this week' },
-  { value: 3, label: 'A few times this week' },
-  { value: 2, label: 'Every day' },
-  { value: 1, label: 'A few times a day' },
+  { value: 1, label: 'Never' },
+  { value: 2, label: '1–2 times this week' },
+  { value: 3, label: '3–4 times this week' },
+  { value: 4, label: '5–6 times this week' },
+  { value: 5, label: 'Every day' },
 ];
 
 const sleepDifficultyOptions = [
-  { value: 5, label: 'Never' },
-  { value: 4, label: '1 night' },
-  { value: 3, label: 'A few nights' },
-  { value: 2, label: 'Most nights' },
-  { value: 1, label: 'Every night' },
+  { value: 1, label: 'Never' },
+  { value: 2, label: '1–2 times this week' },
+  { value: 3, label: '3–4 times this week' },
+  { value: 4, label: '5–6 times this week' },
+  { value: 5, label: 'Every day' },
 ];
 
 const agreementOptions = [
@@ -573,57 +438,57 @@ const familyFriendSupportOptions = [
 ];
 
 const familySupportOptions = [
-  { value: 7, label: 'Very supported' },
-  { value: 6, label: 'Supported' },
-  { value: 5, label: 'Somewhat supported' },
-  { value: 4, label: 'Mixed' },
-  { value: 3, label: 'A little unsupported' },
-  { value: 2, label: 'Unsupported' },
-  { value: 1, label: 'Very unsupported' },
+  { value: 1, label: 'Very supported' },
+  { value: 2, label: 'Supported' },
+  { value: 3, label: 'Slightly supported' },
+  { value: 4, label: 'Neither supported nor unsupported' },
+  { value: 5, label: 'Slightly unsupported' },
+  { value: 6, label: 'Unsupported' },
+  { value: 7, label: 'Very unsupported' },
 ];
 
 const easeTalkOptions = [
   { value: 1, label: 'Very easy' },
   { value: 2, label: 'Quite easy' },
-  { value: 3, label: 'In between' },
-  { value: 4, label: 'Quite hard' },
-  { value: 5, label: 'Very hard or not possible' },
+  { value: 3, label: 'Not sure' },
+  { value: 4, label: 'Quite difficult' },
+  { value: 5, label: 'Very difficult / not possible' },
 ];
 
 const schoolPressureOptions = [
   { value: 1, label: 'Not at all' },
   { value: 2, label: 'A little' },
-  { value: 3, label: 'Quite a bit' },
+  { value: 3, label: 'Some' },
   { value: 4, label: 'A lot' },
 ];
 
 const healthOptions = [
   { value: 1, label: 'Very good' },
   { value: 2, label: 'Good' },
-  { value: 3, label: 'Not so good' },
+  { value: 3, label: 'Fair' },
   { value: 4, label: 'Poor' },
 ];
 
 const schoolLikeOptions = [
   { value: 1, label: 'Very positive' },
-  { value: 2, label: 'Mostly okay' },
-  { value: 3, label: 'Mostly difficult' },
-  { value: 4, label: 'Very difficult' },
+  { value: 2, label: 'Mostly positive' },
+  { value: 3, label: 'Mostly negative' },
+  { value: 4, label: 'Very negative' },
 ];
 
 const peerAcceptanceOptions = [
   { value: 1, label: 'Very accepted' },
-  { value: 2, label: 'Mostly accepted' },
-  { value: 3, label: 'In between' },
+  { value: 2, label: 'Accepted' },
+  { value: 3, label: 'Sometimes accepted' },
   { value: 4, label: 'Often left out' },
   { value: 5, label: 'Not accepted at all' },
 ];
 
 const classroomHelpfulnessOptions = [
   { value: 1, label: 'Very kind and helpful' },
-  { value: 2, label: 'Mostly kind and helpful' },
-  { value: 3, label: 'Mixed' },
-  { value: 4, label: 'Often unhelpful' },
+  { value: 2, label: 'Kind and helpful' },
+  { value: 3, label: 'Sometimes kind and helpful' },
+  { value: 4, label: 'Often not kind or helpful' },
   { value: 5, label: 'Not kind or helpful at all' },
 ];
 
@@ -680,11 +545,11 @@ const vigorousExerciseOptions = [
 ];
 
 const bullyingOptions = [
-  { value: 1, label: 'Not at all' },
-  { value: 2, label: 'Once' },
-  { value: 3, label: 'A few times' },
-  { value: 4, label: 'On most days' },
-  { value: 5, label: 'Every day or more' },
+  { value: 1, label: 'Never' },
+  { value: 2, label: '1–2 times this week' },
+  { value: 3, label: '3–4 times this week' },
+  { value: 4, label: '5–6 times this week' },
+  { value: 5, label: 'Every day' },
 ];
 
 const onlineContactOptions = [
@@ -697,8 +562,8 @@ const onlineContactOptions = [
 ];
 
 const yesNoOptions = [
-  { value: 1, label: 'No, not at all' },
-  { value: 2, label: 'Yes, at least once' },
+  { value: 1, label: 'No' },
+  { value: 2, label: 'Yes' },
 ];
 
 const sexOptions = [
@@ -712,7 +577,7 @@ const featureResponseMeta = {
     options: symptomFrequencyOptions,
     min: 1,
     max: 5,
-    riskDirection: 'lower',
+    riskDirection: 'higher',
     useInScore: true,
     summaryBucket: 'stress',
   },
@@ -721,7 +586,7 @@ const featureResponseMeta = {
     options: sleepDifficultyOptions,
     min: 1,
     max: 5,
-    riskDirection: 'lower',
+    riskDirection: 'higher',
     useInScore: true,
     summaryBucket: 'sleep',
   },
@@ -739,7 +604,7 @@ const featureResponseMeta = {
     options: familySupportOptions,
     min: 1,
     max: 7,
-    riskDirection: 'lower',
+    riskDirection: 'higher',
     useInScore: true,
     summaryBucket: 'social',
   },
@@ -995,6 +860,13 @@ export const FLAG_THRESHOLD = 58.07;
 export const DISTRESS_THRESHOLD = MONITOR_THRESHOLD;
 export const HIGH_DISTRESS_THRESHOLD = FLAG_THRESHOLD;
 
+export const HELPLINE_DIRECTORY = {
+  intro: "If you're going through something difficult and need to talk to someone:",
+  mindlineCall: '1-771',
+  mindlineWhatsapp: '6669-1771',
+  mindlineSite: 'https://www.mindline.sg',
+};
+
 const allQuestionDefinitions = featureDefinitions.map((feature) => ({
   ...feature,
   ...featureResponseMeta[feature.feature],
@@ -1085,6 +957,17 @@ export function getFeatureById(featureId) {
 export function getFeatureByLabel(label) {
   if (!label) return null;
   return featureLabelLookup[String(label).trim().toLowerCase()] || null;
+}
+
+export function getResponseLabel(featureOrId, value) {
+  const feature = typeof featureOrId === 'string'
+    ? getFeatureById(featureOrId)
+    : featureOrId;
+  if (!feature) return String(value ?? '');
+  const option = (feature.options || []).find((item) => String(item.value) === String(value));
+  if (option) return option.label;
+  if (value === null || value === undefined || value === '') return 'No response';
+  return String(value);
 }
 
 function clamp(value, min, max) {
@@ -1421,43 +1304,46 @@ export function deriveConfidenceFromScores(weeklyScores = [], signals = []) {
 
 export function getRecommendedAction(student) {
   const streak = getConsecutiveDistressWeeks(student.weekly_scores || []);
-  const recentScores = (student.weekly_scores || []).slice(-3).map((week) => `${week.week} ${week.score}`).join(' → ');
-  const factors = (student.key_factors || []).map((item) => item.factor).join(', ') || 'no dominant feature cluster';
   const score = Number(student.risk_score || 0);
 
   if (score >= FLAG_THRESHOLD && streak >= 3) {
     return {
-      action: 'Review for Escalation',
+      key: 'escalate',
+      action: 'Escalate to Counsellor',
       urgency: 'urgent',
-      description: `The student is both flagged this week and has a sustained pattern across ${streak} consecutive monitored weeks. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
+      description: 'The student is flagged for review and has shown a sustained elevated pattern across 3 weeks.',
     };
   }
 
   if (score >= FLAG_THRESHOLD) {
     return {
+      key: 'check_in',
       action: 'Check in Privately',
       urgency: 'soon',
-      description: `The latest score is in the flagged band (${FLAG_THRESHOLD.toFixed(2)}+). Start with a supportive private check-in and review whether further escalation is needed. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
+      description: `The latest score is in the flagged band (${FLAG_THRESHOLD.toFixed(2)}+). Start with a supportive private check-in this week.`,
     };
   }
 
   if (streak >= 3) {
     return {
-      action: 'Review in 2 Weeks',
+      key: 'check_in',
+      action: 'Check in Privately',
       urgency: 'soon',
-      description: `The student has stayed in the monitoring band for ${streak} consecutive weeks. Follow up intentionally rather than treating it as a one-off. Recent trajectory: ${recentScores}. Key factors: ${factors}.`,
+      description: `The student has stayed in the monitoring band for ${streak} consecutive weeks and should be reviewed closely.`,
     };
   }
 
   if (score >= MONITOR_THRESHOLD || (student.risk_level === 'medium' && student.trend === 'worsening')) {
     return {
+      key: 'monitor',
       action: 'Monitor for 2 Weeks',
       urgency: 'normal',
-      description: `The student is in the monitoring band (${MONITOR_THRESHOLD.toFixed(2)}+) or showing an upward trend. Keep the student on watch, and review the pattern again in two weeks. Key factors: ${factors}.`,
+      description: `The student is in the monitoring band (${MONITOR_THRESHOLD.toFixed(2)}+) or showing an upward trend. Set a review reminder.`,
     };
   }
 
   return {
+    key: 'routine',
     action: 'Continue Routine Support',
     urgency: 'low',
     description: 'Student responses are currently below the monitoring threshold and do not show a sustained concerning pattern.',
@@ -1480,33 +1366,248 @@ export function hasThreeWeekDistressFlag(weeklyScores, threshold = DISTRESS_THRE
   return getConsecutiveDistressWeeks(weeklyScores, threshold) >= 3;
 }
 
+export function hasTwoWeekElevatedPattern(weeklyScores, threshold = DISTRESS_THRESHOLD) {
+  return getConsecutiveDistressWeeks(weeklyScores, threshold) >= 2;
+}
+
 export function hasSustainedIncrease(weeklyScores) {
   if (!weeklyScores || weeklyScores.length < 3) return false;
   const last3 = weeklyScores.slice(-3);
   return last3[0].score < last3[1].score && last3[1].score < last3[2].score;
 }
 
-export function buildSupportCardsFromSignals(signals = []) {
-  const seen = new Set();
+export const signalLabelByFeature = {
+  grp_aches: 'Physical aches',
+  health: 'Overall health',
+  sleepdificulty: 'Sleep difficulty',
+  schoolpressure: 'School pressure',
+  likeschool: 'School feelings',
+  grp_been_bullied: 'Bullying',
+  studaccept: 'Peer acceptance',
+  studhelpful: 'Classmate support',
+  grp_fam_sup: 'Family support',
+  grp_talk_father: 'Talking to father',
+  grp_talk_mother: 'Talking to mother',
+  emcsocmed8: 'Social media coping',
+};
+
+export function formatSignalLabel(featureId) {
+  return signalLabelByFeature[featureId] || getFeatureById(featureId)?.label || featureId;
+}
+
+export function getSignalArrow(direction) {
+  if (['worsening', 'increasing', 'rising'].includes(direction)) return '↑';
+  if (['declining', 'dropping', 'harder', 'less consistent'].includes(direction)) return '↓';
+  return '→';
+}
+
+const supportCategoryByFeature = {
+  grp_aches: 'physical',
+  health: 'physical',
+  sleepdificulty: 'sleep',
+  schoolpressure: 'school_stress',
+  likeschool: 'school_stress',
+  grp_been_bullied: 'bullying',
+  studaccept: 'social_peers',
+  studhelpful: 'social_peers',
+  grp_fam_sup: 'family_support',
+  grp_talk_father: 'family_support',
+  grp_talk_mother: 'family_support',
+  emcsocmed8: 'digital_social',
+};
+
+export const supportResourceLibrary = {
+  sleep: {
+    label: 'Sleep',
+    sourceLabel: 'MindSG — Sleeping Well (Teens)',
+    tips: [
+      {
+        header: 'Sleep has been harder lately',
+        body: "Your brain naturally releases melatonin later at night during your teen years, so feeling like a night owl isn't just laziness. Aim for 8–10 hours and try to keep a similar bedtime, even on weekends.",
+        link: 'https://www.mindline.sg/youth/article/how-to-sleep-better?type=interest',
+      },
+      {
+        header: 'Try the 20-minute reset',
+        body: "If you've been awake for more than 20 minutes, get out of bed and do something calm without screens. Going back only when you feel sleepy helps your brain reconnect bed with rest.",
+        link: 'https://www.mindline.sg/youth/article/how-to-sleep-better?type=interest',
+      },
+      {
+        header: 'Protect your wind-down time',
+        body: "Staying up late for 'me time' is really common after a packed day, but it often makes tomorrow feel harder. Try keeping the last 30 minutes before bed screen-free so your body can settle.",
+        link: 'https://www.mindline.sg/youth/article/sleep-problems-in-teenagers-causes-and-myths?type=interest',
+      },
+      {
+        header: 'Sleep helps with learning too',
+        body: 'Your brain uses sleep to store what you learned during the day. Sleeping less than 8 hours before a big test usually hurts more than one last study sprint helps.',
+        link: 'https://www.mindline.sg/youth/article/how-much-sleep-do-you-need?type=interest',
+      },
+    ],
+  },
+  school_stress: {
+    label: 'School Stress',
+    sourceLabel: 'MindSG — Coping with Stress (Teens)',
+    tips: [
+      {
+        header: 'School may feel heavier this week',
+        body: 'A little stress can help you focus, but constant stress feels different. If your body feels tense or restless, treat that as an early sign to pause and reset.',
+        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+      },
+      {
+        header: 'Break the week into smaller pieces',
+        body: 'When everything feels urgent, choose just one task and start there. A short 25-minute work block followed by a 5-minute break is often enough to get moving again.',
+        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+      },
+      {
+        header: 'A short pause can help',
+        body: 'You do not need a long meditation session to feel steadier. Even two minutes of noticing what you are feeling without judging it can help you slow the spiral.',
+        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+      },
+      {
+        header: 'Say it early, not after it builds up',
+        body: "Stress usually feels bigger when you keep it to yourself. Even saying 'this week has been a lot' to a teacher, friend, or family member can make the next step feel clearer.",
+        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+      },
+    ],
+  },
+  bullying: {
+    label: 'Bullying',
+    sourceLabel: 'HealthHub / MindSG',
+    tips: [
+      {
+        header: "You don't have to handle this alone",
+        body: "Whether it's in school or online, bullying is not something you should manage by yourself. Telling a trusted adult is not snitching — it's getting support.",
+        link: 'https://www.mindline.sg/youth/article/getting-help-for-bullying?type=interest',
+      },
+      {
+        header: "Don't give online bullying more fuel",
+        body: 'Blocking, not replying, and saving screenshots can help you stay in control. If it keeps happening, report it to a trusted adult or the platform.',
+        link: 'https://www.healthhub.sg/programmes/parent-hub/teens/screen-use',
+      },
+      {
+        header: 'What happened is not your fault',
+        body: 'Being bullied can leave you feeling angry, embarrassed, or worthless. Those feelings are real, but the bullying does not define your worth.',
+        link: 'https://www.mindline.sg/youth/get-help',
+      },
+    ],
+  },
+  social_peers: {
+    label: 'Social & Peers',
+    sourceLabel: 'MindSG / HealthHub',
+    tips: [
+      {
+        header: 'Feeling left out can hit hard',
+        body: 'A lot of people feel out of place sometimes, even when it looks like others have it all together. Reaching out to even one classmate or friend can matter more than it seems.',
+        link: 'https://www.mindline.sg/youth/article/understanding-friendship?type=interest',
+      },
+      {
+        header: 'Connection does not need perfect words',
+        body: "Checking in on someone else or sending a simple 'hey, are you okay?' can build connection for both of you. You do not need the perfect script to start.",
+        link: 'https://www.mindline.sg/youth/article/how-to-talk-to-your-friend-about-mental-health?type=interest',
+      },
+      {
+        header: 'You are allowed to say no',
+        body: "Doing things just to fit in often leaves you feeling worse after. Short responses like 'I'm not into that' get easier with practice and protect your own boundaries.",
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/mental-wellness/saying_no',
+      },
+    ],
+  },
+  family_support: {
+    label: 'Family Support',
+    sourceLabel: 'MindSG — Seeking Support',
+    tips: [
+      {
+        header: 'Start small if talking feels awkward',
+        body: "You do not need to explain everything at once. Even saying 'I've been finding things a bit hard lately' can be enough to open the door.",
+        link: 'https://www.mindline.sg/youth/get-help',
+      },
+      {
+        header: 'Tension at home does not always mean disconnection',
+        body: "Wanting more independence can create friction with parents, and that is common in your teen years. Small shared moments like a meal or short walk can still rebuild connection.",
+        link: 'https://www.mindline.sg/youth/article/caregiving-as-a-youth-a-guide-to-helping-others-and-yourself?type=interest',
+      },
+      {
+        header: 'Another trusted adult counts too',
+        body: 'If talking to a parent feels impossible right now, another adult you trust can still help. Reaching out is a sign that you are taking care of yourself, not that something is wrong with you.',
+        link: 'https://www.mindline.sg/youth/article/how-and-where-to-get-help-for-mental-health-conditions?type=interest',
+      },
+    ],
+  },
+  physical: {
+    label: 'Physical Wellbeing',
+    sourceLabel: 'MindSG',
+    tips: [
+      {
+        header: 'Your body can carry stress too',
+        body: 'Headaches, stomachaches, and tiredness are sometimes how stress shows up physically. If those aches keep coming back, it can help to notice both what is happening in your body and what has been on your mind.',
+        link: 'https://www.mindline.sg/youth/article/coping-with-depression?type=interest',
+      },
+      {
+        header: 'A short walk still counts',
+        body: "Even a 15-minute walk can help your body loosen up and improve your mood a little. You do not need a full workout for movement to make a difference.",
+        link: 'https://www.mindline.sg/youth/article/coping-with-depression?type=interest',
+      },
+      {
+        header: "Resting is not 'being lazy'",
+        body: 'If you are feeling run down or getting aches often, your body may be asking for a reset. It is completely okay to slow down and check in with an adult or doctor if it keeps happening.',
+        link: 'https://www.mindline.sg/youth/article/how-much-sleep-do-you-need?type=interest',
+      },
+    ],
+  },
+  digital_social: {
+    label: 'Digital & Social Media',
+    sourceLabel: 'MindSG',
+    tips: [
+      {
+        header: 'Scrolling for comfort can backfire',
+        body: 'Social media can feel soothing when you are upset, but it can also pull you deeper into comparison or overthinking. Try a different 10-minute reset like music, a short walk, or messaging one friend directly.',
+        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+      },
+      {
+        header: 'Screens can delay sleep',
+        body: "Blue light from screens can delay your brain's sleep signal even when you feel tired. A screen-free 30 minutes before bed can make falling asleep easier.",
+        link: 'https://www.mindline.sg/youth/article/how-to-sleep-better?type=interest',
+      },
+      {
+        header: 'Your feed is not real life',
+        body: "Most feeds are highlight reels, not the full picture. If a platform keeps making you feel worse about yourself, that is a sign to step back and use it more on your terms.",
+        link: 'https://www.mindline.sg/youth/article/coping-with-depression?type=interest',
+      },
+    ],
+  },
+};
+
+export function getSupportCategoryForFeature(featureId) {
+  return supportCategoryByFeature[featureId] || null;
+}
+
+export function buildSupportCardsFromSignals(signals = [], historicalSignalSets = []) {
+  const seenCategories = new Set();
 
   return signals
     .map((signal) => (typeof signal === 'string' ? { feature: signal } : signal))
     .map((signal) => {
       const feature = getFeatureById(signal.feature) || getFeatureByLabel(signal.factor);
-      if (!feature?.supportKey) return null;
-      const playbook = supportPlaybooks[feature.supportKey];
-      if (!playbook || seen.has(feature.supportKey)) return null;
-      seen.add(feature.supportKey);
+      const featureId = feature?.feature || signal.feature;
+      const category = getSupportCategoryForFeature(featureId);
+      if (!featureId || !category || seenCategories.has(category)) return null;
+      const library = supportResourceLibrary[category];
+      if (!library) return null;
+      seenCategories.add(category);
+      const previousMatches = historicalSignalSets.filter((item) => item.includes(category)).length;
+      const tip = library.tips[previousMatches % library.tips.length];
+
       return {
-        featureId: feature.feature,
-        featureLabel: feature.label,
-        category: feature.category,
-        categoryLabel: feature.categoryLabel,
+        featureId,
+        featureLabel: formatSignalLabel(featureId),
+        category,
+        categoryLabel: library.label,
+        title: tip.header,
+        summary: tip.body,
+        sourceLabel: library.sourceLabel,
+        link: tip.link,
         severity: signal.severity || 'medium',
-        direction: signal.direction || 'watch',
-        ...playbook,
       };
     })
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, 2);
 }
