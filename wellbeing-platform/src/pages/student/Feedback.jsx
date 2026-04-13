@@ -17,6 +17,12 @@ function buildAnswers(locationState, latestCheckIn) {
   };
 }
 
+function getHelplineIcon(kind) {
+  if (kind === 'phone') return Phone;
+  if (kind === 'link') return Globe;
+  return MessageCircleMore;
+}
+
 export default function Feedback() {
   const location = useLocation();
   const { student, studentIdentifier, clearStudentIdentifier, isLoading: studentLoading } = useCurrentStudent();
@@ -99,38 +105,41 @@ export default function Feedback() {
         </div>
 
         <div className="rounded-[32px] border border-border bg-[#f7f0df] px-6 py-7 shadow-sm">
-          <h2 className="text-3xl font-semibold text-foreground">First Stop for Mental Health</h2>
-          <p className="text-sm text-foreground/80 mt-3">{HELPLINE_DIRECTORY.intro}</p>
+          <h2 className="text-3xl font-semibold text-foreground">{HELPLINE_DIRECTORY.heading}</h2>
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-foreground/20 bg-white/40 px-5 py-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-foreground" />
-                <span className="text-sm font-medium text-foreground">National mindline (24-hour)</span>
-              </div>
-              <span className="text-sm font-semibold text-foreground">{HELPLINE_DIRECTORY.mindlineCall}</span>
-            </div>
-            <div className="rounded-2xl border border-foreground/20 bg-white/40 px-5 py-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <MessageCircleMore className="w-4 h-4 text-foreground" />
-                <span className="text-sm font-medium text-foreground">WhatsApp</span>
-              </div>
-              <span className="text-sm font-semibold text-foreground">{HELPLINE_DIRECTORY.mindlineWhatsapp}</span>
-            </div>
-            <div className="rounded-2xl border border-foreground/20 bg-white/40 px-5 py-4 flex items-center justify-between gap-3 md:col-span-2">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-foreground" />
-                <span className="text-sm font-medium text-foreground">mindline.sg</span>
-              </div>
-              <a
-                href={HELPLINE_DIRECTORY.mindlineSite}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm font-semibold text-foreground hover:underline"
-              >
-                free online mental health support
-              </a>
-            </div>
+          <div className="mt-6 grid grid-cols-1 gap-3">
+            {HELPLINE_DIRECTORY.items.map((item) => {
+              const Icon = getHelplineIcon(item.kind);
+
+              return (
+                <div
+                  key={item.key}
+                  className="rounded-2xl border border-foreground/20 bg-white/40 px-5 py-4 flex items-start justify-between gap-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <Icon className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      {item.detail && (
+                        <p className="text-sm text-foreground/80 mt-1">{item.detail}</p>
+                      )}
+                    </div>
+                  </div>
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-semibold text-foreground hover:underline shrink-0"
+                    >
+                      {item.siteLabel}
+                    </a>
+                  ) : item.phone ? (
+                    <span className="text-sm font-semibold text-foreground shrink-0">{item.phone}</span>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
 

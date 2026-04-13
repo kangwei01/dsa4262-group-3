@@ -1,11 +1,12 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarClock, MessageSquareText, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarClock, MessageSquareText, Trash2, UserRound } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
 import TrendSparkline from '@/components/teacher/TrendSparkline';
-import { useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
+import { useDeleteTeacherAction, useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
 import {
   formatSignalLabel,
   getRecommendedAction,
@@ -113,6 +114,7 @@ export default function StudentDetail() {
   const { data: student, isLoading } = useTeacherStudent(id, teacher);
   const { data: checkIns = [] } = useStudentCheckIns(id);
   const { data: teacherActions = [] } = useTeacherActions(id);
+  const deleteTeacherAction = useDeleteTeacherAction();
 
   if (isLoading) {
     return <div className="py-10 text-sm text-muted-foreground">Loading student profile…</div>;
@@ -134,6 +136,21 @@ export default function StudentDetail() {
   const responseQuestions = getWeeklyResponseQuestions(latestCheckIn);
   const actionButtons = getActionButtons(student);
   const sexLabel = getResponseLabel('sex', student.baseline_responses?.sex);
+
+  const handleDeleteAction = async (action) => {
+    const confirmed = window.confirm('Delete this log entry?');
+    if (!confirmed) return;
+
+    try {
+      await deleteTeacherAction.mutateAsync({
+        actionId: action.id,
+        source: action.source,
+      });
+      toast.success('Log entry deleted.');
+    } catch (error) {
+      toast.error(error.message || 'Could not delete that log entry right now.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -266,7 +283,22 @@ export default function StudentDetail() {
               {teacherActions.map((action) => (
                 <div key={action.id || `${action.action_type}-${action.created_at || ''}`} className="rounded-2xl border border-border/60 bg-card p-4">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <p className="text-sm font-semibold text-foreground">{actionTypeLabels[action.action_type] || action.action_type}</p>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground">{actionTypeLabels[action.action_type] || action.action_type}</p>
+                      {action.action_type === 'open_survey' && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-rose-600 hover:text-rose-700"
+                          disabled={deleteTeacherAction.isPending}
+                          onClick={() => handleDeleteAction(action)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground">
                       {action.created_at ? new Date(action.created_at).toLocaleString() : 'Saved action'}
                     </span>

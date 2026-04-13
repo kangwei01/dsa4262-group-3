@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
 import TrendSparkline from '@/components/teacher/TrendSparkline';
-import { useOpenStudentSurveys, useTeacherActivityFeed, useTeacherStudents } from '@/hooks/useWellbeingData';
+import { useCloseStudentSurveys, useOpenStudentSurveys, useTeacherActivityFeed, useTeacherStudents } from '@/hooks/useWellbeingData';
 import {
   FLAG_THRESHOLD,
   formatSignalLabel,
@@ -87,6 +87,9 @@ function nextStepLabel(student, actions) {
   if (student.next_follow_up_at && hasCompletedCheckIn(student.id, actions)) {
     return 'Next session scheduled';
   }
+  if (student.action_status === 'referred'){
+    return 'Referred to counsellor'
+  }
   return getRecommendedAction(student).action;
 }
 
@@ -96,6 +99,7 @@ export default function Dashboard() {
   const { data: students = [], isLoading } = useTeacherStudents(teacher);
   const { data: actions = [] } = useTeacherActivityFeed(teacher);
   const openStudentSurveys = useOpenStudentSurveys();
+  const closeStudentSurveys = useCloseStudentSurveys();
 
   const stats = useMemo(() => ({
     total: students.length,
@@ -127,15 +131,49 @@ export default function Dashboard() {
     ))
   ), [students]);
 
-  const handleBatchOpen = async (surveyType) => {
+  const weeklyPulseOn = useMemo(
+    () => students.some((student) => student.survey_status === 'open' && student.survey_type === 'weekly'),
+    [students],
+  );
+  const monthlyCheckInOn = useMemo(
+    () => students.some((student) => student.survey_status === 'open' && student.survey_type === 'monthly'),
+    [students],
+  );
+
+  const handleBatchToggle = async (surveyType) => {
+    const isOn = surveyType === 'monthly' ? monthlyCheckInOn : weeklyPulseOn;
+
     try {
-      await openStudentSurveys.mutateAsync({
-        studentIds: students.map((student) => student.id),
-        surveyType,
-        teacherEmail: teacher?.teacher_identifier || 'wellbeing@school.edu',
-        notes: `${surveyType === 'monthly' ? 'Monthly check-in' : 'Weekly pulse'} opened from the dashboard.`,
-      });
-      toast.success(`${surveyType === 'monthly' ? 'Monthly check-in' : 'Weekly pulse'} opened.`);
+      if (isOn) {
+        await closeStudentSurveys.mutateAsync({
+          studentIds: students
+            .filter((student) => student.survey_status === 'open' && student.survey_type === surveyType)
+            .map((student) => student.id),
+        });
+        toast.success(
+          surveyType === 'monthly'
+            ? 'Monthly check-in turned off.'
+            : 'Weekly pulse turned off.',
+          {
+            description: `Students can no longer submit the ${surveyType === 'monthly' ? 'monthly check-in' : 'weekly pulse'}.`,
+          },
+        );
+      } else {
+        await openStudentSurveys.mutateAsync({
+          studentIds: students.map((student) => student.id),
+          surveyType,
+          teacherEmail: teacher?.teacher_identifier || 'wellbeing@school.edu',
+          notes: `${surveyType === 'monthly' ? 'Monthly check-in' : 'Weekly pulse'} opened from the dashboard.`,
+        });
+        toast.success(
+          surveyType === 'monthly'
+            ? 'Monthly check-in turned on.'
+            : 'Weekly pulse turned on.',
+          {
+            description: `Students can now submit the ${surveyType === 'monthly' ? 'monthly check-in' : 'weekly pulse'}.`,
+          },
+        );
+      }
     } catch (error) {
       toast.error(error.message || 'Could not open the survey window right now.');
     }
@@ -154,19 +192,19 @@ export default function Dashboard() {
           <Button
             variant="outline"
             className="gap-2"
-            disabled={openStudentSurveys.isPending || students.length === 0}
-            onClick={() => handleBatchOpen('weekly')}
+            disabled={openStudentSurveys.isPending || closeStudentSurveys.isPending || students.length === 0}
+            onClick={() => handleBatchToggle('weekly')}
           >
             <Send className="w-4 h-4" />
-            Open weekly pulse
+            {weeklyPulseOn ? 'Turn off weekly pulse' : 'Turn on weekly pulse'}
           </Button>
           <Button
             className="gap-2"
-            disabled={openStudentSurveys.isPending || students.length === 0}
-            onClick={() => handleBatchOpen('monthly')}
+            disabled={openStudentSurveys.isPending || closeStudentSurveys.isPending || students.length === 0}
+            onClick={() => handleBatchToggle('monthly')}
           >
             <CalendarClock className="w-4 h-4" />
-            Open monthly check-in
+            {monthlyCheckInOn ? 'Turn off monthly check-in' : 'Turn on monthly check-in'}
           </Button>
         </div>
       </div>

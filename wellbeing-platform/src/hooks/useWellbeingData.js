@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   authenticateStudentProfile,
+  closeSurveysForStudents,
   completeFollowUpReminder,
   createParentCommunication,
   createCounsellorCase,
   getDefaultStudent,
+  deleteTeacherAction,
   getLatestCheckInByStudentId,
   getStudentById,
   getStudentByIdForTeacher,
@@ -258,6 +260,20 @@ export function useLogTeacherAction() {
   });
 }
 
+export function useDeleteTeacherAction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteTeacherAction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions', 'teacher'] });
+    },
+  });
+}
+
 export function useOpenStudentSurvey() {
   const queryClient = useQueryClient();
 
@@ -281,6 +297,19 @@ export function useOpenStudentSurveys() {
 
   return useMutation({
     mutationFn: openSurveysForStudents,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-students'] });
+      queryClient.invalidateQueries({ queryKey: ['teacher-actions'] });
+    },
+  });
+}
+
+export function useCloseStudentSurveys() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: closeSurveysForStudents,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: ['teacher-students'] });

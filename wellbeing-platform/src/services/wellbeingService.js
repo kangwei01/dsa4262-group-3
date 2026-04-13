@@ -315,6 +315,13 @@ function appendLocalTeacherAction(action) {
   return normalizeTeacherAction(action, FALLBACK_SOURCE);
 }
 
+function deleteLocalTeacherAction(actionId) {
+  const actions = readLocalCollection(LOCAL_TEACHER_ACTION_STORAGE_KEY);
+  const nextActions = actions.filter((action) => action.id !== actionId);
+  writeLocalCollection(LOCAL_TEACHER_ACTION_STORAGE_KEY, nextActions);
+  return true;
+}
+
 function listLocalCounsellorCases() {
   return readLocalCollection(LOCAL_COUNSELLOR_CASE_STORAGE_KEY)
     .map((record) => normalizeCounsellorCase(record, FALLBACK_SOURCE));
@@ -1092,6 +1099,50 @@ export async function openSurveysForStudents({
   return updatedStudents;
 }
 
+export async function closeSurveyForStudent({
+  studentId,
+}) {
+  try {
+    const current = await getStudentById(studentId);
+    if (!current) return null;
+
+    const update = {
+      survey_status: 'closed',
+      survey_opened_at: null,
+      survey_opened_by: null,
+    };
+
+    if (current.source === FALLBACK_SOURCE || String(studentId).startsWith('local_')) {
+      return upsertLocalDraftProfile({
+        ...current,
+        ...update,
+      });
+    }
+
+    const updated = await backendClient.entities.StudentProfile.update(studentId, update);
+    return normalizeStudentProfile(updated, BACKEND_SOURCE);
+  } catch (error) {
+    console.warn('Unable to close survey for student:', error);
+    throw error;
+  }
+}
+
+export async function closeSurveysForStudents({
+  studentIds = [],
+}) {
+  const uniqueIds = [...new Set((studentIds || []).filter(Boolean))];
+  const updatedStudents = [];
+
+  for (const studentId of uniqueIds) {
+    const updatedStudent = await closeSurveyForStudent({ studentId });
+    if (updatedStudent) {
+      updatedStudents.push(updatedStudent);
+    }
+  }
+
+  return updatedStudents;
+}
+
 export async function logTeacherAction({
   studentId,
   actionType,
@@ -1182,6 +1233,27 @@ export async function logTeacherAction({
   }
 
   return action;
+}
+
+export async function deleteTeacherAction({
+  actionId,
+  source = BACKEND_SOURCE,
+}) {
+  if (!actionId) {
+    throw new Error('Teacher action ID is required.');
+  }
+
+  if (source === FALLBACK_SOURCE || String(actionId).startsWith('local_')) {
+    return deleteLocalTeacherAction(actionId);
+  }
+
+  try {
+    await backendClient.entities.TeacherAction.delete(actionId);
+    return true;
+  } catch (error) {
+    console.warn('Unable to delete teacher action from backend:', error);
+    return deleteLocalTeacherAction(actionId);
+  }
 }
 
 export async function completeFollowUpReminder({

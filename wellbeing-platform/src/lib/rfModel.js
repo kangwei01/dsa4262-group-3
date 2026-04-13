@@ -861,10 +861,45 @@ export const DISTRESS_THRESHOLD = MONITOR_THRESHOLD;
 export const HIGH_DISTRESS_THRESHOLD = FLAG_THRESHOLD;
 
 export const HELPLINE_DIRECTORY = {
-  intro: "If you're going through something difficult and need to talk to someone:",
-  mindlineCall: '1-771',
-  mindlineWhatsapp: '6669-1771',
-  mindlineSite: 'https://www.mindline.sg',
+  heading: "If you'd like to talk to someone",
+  items: [
+    {
+      key: 'school_counsellor',
+      label: 'Your school counsellor',
+      detail: 'Ask any teacher, or visit the counselling room directly.',
+      kind: 'support',
+    },
+    {
+      key: 'tinkle_friend',
+      label: 'Tinkle Friend (ages 7–18)',
+      detail: 'Free helpline for children and teens in Singapore.',
+      phone: '1800-274-4788',
+      siteLabel: 'tinklefriend.sg',
+      href: 'https://www.tinklefriend.sg',
+      kind: 'phone',
+    },
+    {
+      key: 'national_mindline',
+      label: 'National Mindline (24-hour)',
+      detail: 'Call 1-771 · WhatsApp 6669-1771',
+      kind: 'phone',
+    },
+    {
+      key: 'reach',
+      label: "Singapore Children's Society - REACH",
+      siteLabel: 'reach.org.sg',
+      href: 'https://reach.org.sg',
+      kind: 'link',
+    },
+    {
+      key: 'mindline_site',
+      label: 'mindline.sg',
+      detail: 'Free online mental health support.',
+      siteLabel: 'mindline.sg',
+      href: 'https://www.mindline.sg',
+      kind: 'link',
+    },
+  ],
 };
 
 const allQuestionDefinitions = featureDefinitions.map((feature) => ({
@@ -1537,8 +1572,8 @@ export const supportResourceLibrary = {
     sourceLabel: 'MindSG',
     tips: [
       {
-        header: 'Your body can carry stress too',
-        body: 'Headaches, stomachaches, and tiredness are sometimes how stress shows up physically. If those aches keep coming back, it can help to notice both what is happening in your body and what has been on your mind.',
+        header: 'Your body can feel it too',
+        body: 'Headaches, stomachaches, and tiredness can sometimes show up when a lot has been going on. If those aches keep coming back, it can help to notice both what is happening in your body and what has been on your mind.',
         link: 'https://www.mindline.sg/youth/article/coping-with-depression?type=interest',
       },
       {
