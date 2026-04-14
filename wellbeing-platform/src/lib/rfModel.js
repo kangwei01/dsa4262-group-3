@@ -870,12 +870,10 @@ export const HELPLINE_DIRECTORY = {
       kind: 'support',
     },
     {
-      key: 'tinkle_friend',
-      label: 'Tinkle Friend (ages 7–18)',
-      detail: 'Free helpline for children and teens in Singapore.',
-      phone: '1800-274-4788',
-      siteLabel: 'tinklefriend.sg',
-      href: 'https://www.tinklefriend.sg',
+      key: 'samaritans_of_singapore',
+      label: 'Samaritans of Singapore (24-hour)',
+      detail: '24-hour helpline.',
+      phone: '1-767',
       kind: 'phone',
     },
     {
