@@ -1,16 +1,25 @@
 # Quick Setup
 
-## Step 1 — Generate the model
+## Step 1 — Clone the repo and pull the model
 
-Open and run `rebuilt.ipynb` in Jupyter. This exports `rf_model.pkl` and `rf_config.json` into `inference_api/`.
+```bash
+brew install git-lfs
+git lfs install
+git clone https://github.com/kangwei01/dsa4262-group-3.git
+cd dsa4262-group-3
+git lfs pull
+```
 
-Requirements: Python 3.10+, the packages used in the notebook, and the HBSC data in `HBSC_data/`.
+This downloads the exported model file `inference_api/rf_model.pkl`, which is tracked with Git LFS.
 
 ## Step 2 — Start the inference API
 
 ```bash
 cd inference_api
-pip install -r requirements.txt
+/opt/homebrew/bin/python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 uvicorn app:app --reload --port 8000
 ```
 
@@ -31,4 +40,6 @@ Open `http://localhost:5173`.
 
 If the inference API is not running, the frontend falls back to local heuristic scoring automatically — the app still works.
 In demo mode (`VITE_APP_ID=your_app_id`), authentication is bypassed and seed data is used.
-`rf_model.pkl` is excluded from git (122 MB). You must generate it from the notebook.
+If you already cloned the repo before Git LFS was set up, run `git lfs install && git lfs pull` from the repo root to download the model file.
+Run `rebuilt.ipynb` only if you want to retrain the model and regenerate `rf_model.pkl` and `rf_config.json`.
+Python 3.11 is required for the inference API. Using Python 3.14 may trigger SciPy / scikit-learn build failures.
