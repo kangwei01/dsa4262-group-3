@@ -149,6 +149,7 @@ When `VITE_APP_ID` is set to `your_app_id` (the default), the app runs in **demo
 - Authentication is bypassed; a mock student session is used
 - Student profile data is loaded from local seed data
 - The inference API is still called if running; otherwise the app falls back to local heuristic scoring
+- The prototype is designed around **one check-in per student per day**. If the same student submits again 5 to 10 minutes later on the same day, the app treats it as the same daily snapshot rather than a second independent record
 - All UI features remain functional for demonstration purposes
 
 ---
@@ -157,6 +158,7 @@ When `VITE_APP_ID` is set to `your_app_id` (the default), the app runs in **demo
 
 - `rf_model.pkl` is included through Git LFS. Anyone cloning the repository must have Git LFS installed and run `git lfs pull` so the actual model file is downloaded locally.
 - The platform's auth and data persistence layer (Base44) requires a live backend for production use. In local demo mode, data is stored in browser `localStorage` only and does not persist across devices.
+- Repeated same-day submissions for the same student are not a supported analysis use case in demo mode. The latest submission is intended to replace that day's snapshot rather than create multiple trend points.
 - The predicted risk score is a research prototype and has not been clinically validated.
 - Python 3.11 is required for the inference API environment. Node.js 18+ is recommended for the frontend.
 

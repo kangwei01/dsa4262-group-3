@@ -105,6 +105,17 @@ const featureDefinitions = [
     supportKey: null,
   },
   {
+    feature: 'year_group',
+    label: 'School year',
+    category: 'baseline',
+    cadence: 'one_time',
+    importance: 0,
+    question: 'What year are you in at school?',
+    sourceCols: ['year_group'],
+    aggregationMethod: 'raw',
+    supportKey: null,
+  },
+  {
     feature: 'emcsocmed8',
     label: 'Social media: escape from negative feelings',
     category: 'digital',
@@ -379,6 +390,7 @@ const selectedFeatureImportances = {
   ...(RF_CONFIG.importances || {}),
   grp_talk_father: RF_CONFIG.importances?.talkfather,
   grp_talk_mother: RF_CONFIG.importances?.talkmother,
+  year_group: 0,
 };
 
 export const categoryLabels = {
@@ -657,6 +669,18 @@ const featureResponseMeta = {
     step: 1,
     placeholder: 'Enter weight',
     suffix: 'kg',
+    riskDirection: 'context',
+    useInScore: false,
+  },
+  year_group: {
+    responseType: 'choice',
+    options: [
+      { value: 'sec1', label: 'Secondary 1' },
+      { value: 'sec2', label: 'Secondary 2' },
+      { value: 'sec3', label: 'Secondary 3' },
+      { value: 'sec4', label: 'Secondary 4' },
+      { value: 'sec5', label: 'Secondary 5' },
+    ],
     riskDirection: 'context',
     useInScore: false,
   },

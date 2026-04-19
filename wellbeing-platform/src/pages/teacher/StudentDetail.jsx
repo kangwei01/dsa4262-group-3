@@ -162,7 +162,7 @@ export default function StudentDetail() {
         </Link>
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{student.name}</h1>
-          <p className="text-sm text-muted-foreground">{student.grade} · {student.student_identifier || 'No student ID'}</p>
+          <p className="text-sm text-muted-foreground">{student.grade && student.grade !== 'Unassigned' ? student.grade : 'Year not set'} · {student.student_identifier || 'No student ID'}</p>
         </div>
       </div>
 
@@ -172,8 +172,8 @@ export default function StudentDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm text-foreground">{student.grade || 'Year —'}</span>
-                <span className="text-sm text-foreground">Age {student.age || '—'}</span>
+                <span className="text-sm text-foreground">{student.grade && student.grade !== 'Unassigned' ? student.grade : 'Year —'}</span>
+                <span className="text-sm text-foreground">Age {student.age > 0 ? student.age : '—'}</span>
                 <span className="text-sm text-foreground">Sex {sexLabel}</span>
                 <RiskBadge level={student.risk_level} />
                 <TrendIndicator trend={student.trend} />
@@ -218,7 +218,12 @@ export default function StudentDetail() {
                 <div key={question.feature} className="rounded-2xl border border-border/60 bg-card p-4">
                   <p className="text-sm font-medium text-foreground">{question.question}</p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    {getResponseLabel(question, latestCheckIn.answers?.[question.feature])}
+                    {getResponseLabel(
+                      question,
+                      latestCheckIn.answers?.[question.feature]
+                        ?? latestCheckIn.responses?.[question.feature]
+                        ?? latestCheckIn.monthly_responses?.[question.feature],
+                    )}
                   </p>
                 </div>
               ))}

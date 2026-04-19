@@ -143,6 +143,20 @@ function buildMonthlyResponses(source = {}) {
   );
 }
 
+function normalizeStoredAnswerKeys(answers = {}) {
+  const normalized = { ...answers };
+
+  if (normalized.talkfather !== undefined && normalized.grp_talk_father === undefined) {
+    normalized.grp_talk_father = normalized.talkfather;
+  }
+
+  if (normalized.talkmother !== undefined && normalized.grp_talk_mother === undefined) {
+    normalized.grp_talk_mother = normalized.talkmother;
+  }
+
+  return normalized;
+}
+
 function enrichKeyFactor(item = {}) {
   const feature = getFeatureById(item.feature) || getFeatureByLabel(item.factor);
 
@@ -167,11 +181,12 @@ function normalizeStudentProfile(student, source = BACKEND_SOURCE) {
     ...student.baseline_responses,
   });
   const monthly_responses = buildMonthlyResponses(student.monthly_responses || {});
+  const age = Number(student.age || baseline_responses.age || 0);
 
   return {
     ...safeStudent,
     source,
-    age: Number(student.age || 0),
+    age,
     risk_score: Number(student.risk_score || 0),
     confidence: Number(student.confidence || 72),
     student_identifier: normalizeStudentIdentifier(student.student_identifier || ''),
@@ -414,23 +429,32 @@ function mergeUniqueBy(items = [], keyBuilder) {
 }
 
 function extractCheckInAnswers(checkIn = {}) {
+  let answers = {};
+
   if (checkIn.responses && typeof checkIn.responses === 'object') {
-    return checkIn.responses;
+    answers = checkIn.responses;
+  } else {
+    answers = Object.fromEntries(
+      Object.entries(checkIn).filter(([key]) => key.startsWith('q_')),
+    );
   }
 
-  return Object.fromEntries(
-    Object.entries(checkIn).filter(([key]) => key.startsWith('q_')),
-  );
+  return normalizeStoredAnswerKeys(answers);
 }
 
 function normalizeCheckIn(checkIn, source = BACKEND_SOURCE) {
+  const monthly_responses = buildMonthlyResponses(checkIn.monthly_responses || {});
+
   return {
     ...checkIn,
     source,
     survey_type: checkIn.survey_type === 'monthly' ? 'monthly' : 'weekly',
-    answers: extractCheckInAnswers(checkIn),
+    answers: {
+      ...monthly_responses,
+      ...extractCheckInAnswers(checkIn),
+    },
     baseline_responses: checkIn.baseline_responses || null,
-    monthly_responses: buildMonthlyResponses(checkIn.monthly_responses || {}),
+    monthly_responses,
   };
 }
 
@@ -877,6 +901,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     fasholidays: submittedBaseline.fasholidays ?? current?.baseline_responses?.fasholidays ?? '',
     bodyweight: submittedBaseline.bodyweight ?? current?.baseline_responses?.bodyweight ?? '',
     bodyheight: submittedBaseline.bodyheight ?? current?.baseline_responses?.bodyheight ?? '',
+    year_group: submittedBaseline.year_group ?? current?.baseline_responses?.year_group ?? '',
     ...current?.baseline_responses,
     ...submittedBaseline,
   });
@@ -933,7 +958,35 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
         };
       })
       .filter(Boolean);
-    if (shapFactors.length > 0) key_factors = shapFactors;
+
+    const HIGH_STAKES_FEATURES = [
+      'grp_been_bullied',
+      'sleepdificulty',
+      'schoolpressure',
+      'grp_fam_sup',
+      'grp_aches',
+    ];
+    const shapFeatureSet = new Set(shapFactors.map((f) => f.feature));
+    const urgentFactors = HIGH_STAKES_FEATURES
+      .filter((featureId) => !shapFeatureSet.has(featureId))
+      .map((featureId) => {
+        const feature = getFeatureById(featureId);
+        if (!feature) return null;
+        const risk = getFeatureRiskContribution(feature, signalContext[featureId]);
+        if (risk === null || risk < 0.75) return null;
+        return {
+          feature: featureId,
+          factor: feature.label,
+          category: feature.category,
+          direction: getSignalDirection(feature),
+          severity: scoreToSeverityFromRisk(risk),
+          source: 'safety_flag',
+        };
+      })
+      .filter(Boolean);
+
+    const merged = [...urgentFactors, ...shapFactors].slice(0, 3);
+    if (merged.length > 0) key_factors = merged;
   }
   const legacyFields = buildLegacyCheckInFields(weeklyAnswers);
   let persistedCheckIn = true;
@@ -1005,8 +1058,14 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     const monthly_completed_at = nextSurveyType === 'monthly'
       ? new Date().toISOString()
       : (profile.monthly_completed_at || null);
+    const gradeOptions = {
+      sec1: 'Secondary 1', sec2: 'Secondary 2', sec3: 'Secondary 3',
+      sec4: 'Secondary 4', sec5: 'Secondary 5',
+    };
+    const grade = gradeOptions[mergedBaseline.year_group] || profile.grade || 'Unassigned';
     const age = Number(mergedBaseline.age || profile.age || 0);
     const fullUpdate = {
+      grade,
       age,
       baseline_responses: mergedBaseline,
       monthly_responses: mergedMonthly,
