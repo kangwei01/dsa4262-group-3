@@ -10,6 +10,7 @@ import TrendSparkline from '@/components/teacher/TrendSparkline';
 import { useCloseStudentSurveys, useOpenStudentSurveys, useTeacherActivityFeed, useTeacherStudents } from '@/hooks/useWellbeingData';
 import {
   FLAG_THRESHOLD,
+  deriveTrendFromScores,
   formatSignalLabel,
   getConsecutiveDistressWeeks,
   getRecommendedAction,
@@ -55,6 +56,7 @@ function hasCompletedActionThisWeek(studentId, actions) {
   return actions.some((action) => (
     action.student_id === studentId
     && action.completed
+    && action.action_type !== 'open_survey'
     && Date.parse(action.created_at || 0) >= weekAgo
   ));
 }
@@ -260,7 +262,7 @@ export default function Dashboard() {
                         </Link>
                         <span className="text-xs text-muted-foreground">{student.grade} · Age {student.age}</span>
                         <RiskBadge level={student.risk_level} />
-                        <TrendIndicator trend={student.trend} />
+                        <TrendIndicator trend={deriveTrendFromScores(student.weekly_scores)} />
                       </div>
                       <p className="text-sm text-foreground">{buildMainSignal(student)}</p>
                     </div>
@@ -328,7 +330,7 @@ export default function Dashboard() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <TrendSparkline weeklyScores={student.weekly_scores.slice(-3)} />
-                          <TrendIndicator trend={student.trend} />
+                          <TrendIndicator trend={deriveTrendFromScores(student.weekly_scores)} />
                         </div>
                       </td>
                       <td className="px-4 py-3">
