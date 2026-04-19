@@ -1,0 +1,9 @@
+{
+  "name": "Student Wellbeing Platform",
+  "short_name": "Wellbeing",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": []
+}

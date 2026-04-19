@@ -1,3 +1,4 @@
+import React from 'react';
 import { Toaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -22,6 +23,90 @@ import TeacherLogin from './pages/teacher/TeacherLogin';
 import FollowUpQueue from './pages/teacher/FollowUpQueue';
 import CounsellorQueue from './pages/teacher/CounsellorQueue';
 import ParentCommunications from './pages/teacher/ParentCommunications';
+
+const RESETTABLE_LOCAL_STORAGE_KEYS = [
+  'mindbridge_local_student_profiles',
+  'mindbridge_local_student_checkins',
+  'mindbridge_local_teacher_actions',
+  'mindbridge_local_counsellor_cases',
+  'mindbridge_local_parent_communications',
+  'mindbridge_student_identifier',
+  'mindbridge_teacher_session',
+  'wellbeing_app_app_id',
+  'wellbeing_app_access_token',
+  'wellbeing_app_functions_version',
+  'wellbeing_app_app_base_url',
+  'wellbeing_app_from_url',
+  'token',
+];
+
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      errorMessage: '',
+    };
+  }
+
+  static getDerivedStateFromError(error) {
+    return {
+      hasError: true,
+      errorMessage: error?.message || 'Unknown application error.',
+    };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('[AppErrorBoundary] App render failed:', error, errorInfo);
+  }
+
+  handleReload = () => {
+    window.location.reload();
+  };
+
+  handleReset = () => {
+    if (typeof window === 'undefined') return;
+    RESETTABLE_LOCAL_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
+    window.location.reload();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+          <div className="w-full max-w-xl rounded-3xl border border-border bg-card p-8 shadow-sm space-y-4">
+            <div>
+              <h1 className="text-2xl font-semibold">The app hit an unexpected error</h1>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                This usually happens because of stale local demo data or a local setup mismatch. The app has been stopped safely instead of showing a blank page.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-secondary/30 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Error details</p>
+              <p className="text-sm text-foreground mt-2 break-words">{this.state.errorMessage}</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={this.handleReload}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
+              >
+                Reload app
+              </button>
+              <button
+                onClick={this.handleReset}
+                className="px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-secondary/40"
+              >
+                Reset local demo data
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const TeacherProtectedRoute = ({ children }) => {
   const location = useLocation();
@@ -151,16 +236,18 @@ const AuthenticatedApp = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <TeacherAccessProvider>
-        <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <AuthenticatedApp />
-          </Router>
-          <Toaster richColors position="top-right" />
-        </QueryClientProvider>
-      </TeacherAccessProvider>
-    </AuthProvider>
+    <AppErrorBoundary>
+      <AuthProvider>
+        <TeacherAccessProvider>
+          <QueryClientProvider client={queryClientInstance}>
+            <Router>
+              <AuthenticatedApp />
+            </Router>
+            <Toaster richColors position="top-right" />
+          </QueryClientProvider>
+        </TeacherAccessProvider>
+      </AuthProvider>
+    </AppErrorBoundary>
   )
 }
 

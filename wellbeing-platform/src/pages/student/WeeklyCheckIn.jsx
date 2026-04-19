@@ -382,20 +382,43 @@ export default function WeeklyCheckIn() {
                   </h2>
 
                   <div className="mt-6 grid grid-cols-1 gap-3">
-                    {currentQuestion.options.map((option) => (
-                      <button
-                        key={`${currentQuestion.feature}-${option.value}`}
-                        type="button"
-                        onClick={() => handleChoiceSelect(option.value)}
-                        className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition-colors ${
-                          String(currentValue) === String(option.value)
-                            ? 'border-primary bg-primary/5 text-foreground'
-                            : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-secondary/20'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                    {currentQuestion.responseType === 'number' ? (
+                      <div className="flex flex-col gap-3">
+                        <Input
+                          type="number"
+                          min={currentQuestion.min}
+                          max={currentQuestion.max}
+                          step={currentQuestion.step ?? 1}
+                          placeholder={currentQuestion.placeholder ?? ''}
+                          value={currentValue ?? ''}
+                          onChange={(e) => updateAnswer(currentQuestion, e.target.value)}
+                          className="rounded-2xl border border-border px-4 py-3 text-sm"
+                        />
+                        <Button
+                          type="button"
+                          onClick={goNext}
+                          disabled={!currentValue && currentValue !== 0}
+                          className="w-full rounded-2xl"
+                        >
+                          Continue
+                        </Button>
+                      </div>
+                    ) : (
+                      (currentQuestion.options ?? []).map((option) => (
+                        <button
+                          key={`${currentQuestion.feature}-${option.value}`}
+                          type="button"
+                          onClick={() => handleChoiceSelect(option.value)}
+                          className={`w-full rounded-2xl border px-4 py-3 text-left text-sm transition-colors ${
+                            String(currentValue) === String(option.value)
+                              ? 'border-primary bg-primary/5 text-foreground'
+                              : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-secondary/20'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
