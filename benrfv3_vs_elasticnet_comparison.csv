@@ -1,3 +1,0 @@
-model,mean_test_r2,std_test_r2,mean_test_rmse,std_test_rmse,mean_test_mae,std_test_mae,mean_train_r2
-ElasticNet,0.4556,0.0079,17.5705,0.0916,13.9319,0.0621,0.4559
-RandomForest,0.4661,0.0087,17.4,0.1046,13.8204,0.0667,0.4992

@@ -1,0 +1,57 @@
+{
+  "features": [
+    "grp_aches",
+    "sleepdificulty",
+    "health",
+    "schoolpressure",
+    "grp_fam_sup",
+    "talkfather",
+    "emcsocmed8",
+    "talkmother",
+    "likeschool",
+    "grp_been_bullied",
+    "studaccept",
+    "sex",
+    "famdec",
+    "grp_teacher",
+    "age",
+    "famhelp",
+    "grp_bfast",
+    "thinkbody",
+    "studhelpful",
+    "bodyheight",
+    "bodyweight"
+  ],
+  "importances": {
+    "grp_aches": 0.23965396139009776,
+    "sleepdificulty": 0.1617745464962431,
+    "health": 0.07423052972245153,
+    "schoolpressure": 0.06503254979832669,
+    "grp_fam_sup": 0.06114602515075421,
+    "talkfather": 0.04667988686979956,
+    "emcsocmed8": 0.038082449996801694,
+    "talkmother": 0.03154146665414937,
+    "likeschool": 0.02989887802210406,
+    "grp_been_bullied": 0.030764903824743856,
+    "studaccept": 0.030772799989770876,
+    "sex": 0.02404049947119687,
+    "famdec": 0.01706943338244951,
+    "grp_teacher": 0.019155529413358383,
+    "age": 0.023700017263246973,
+    "famhelp": 0.01498916209244288,
+    "grp_bfast": 0.01714754607974582,
+    "thinkbody": 0.014706071702832316,
+    "studhelpful": 0.017632624077597043,
+    "bodyheight": 0.0211174138264185,
+    "bodyweight": 0.020863704775469106
+  },
+  "class_labels": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "thresholds": {
+    "monitor_75th": 50.0,
+    "flag_85th": 62.5
+  }
+}

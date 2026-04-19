@@ -1,5 +1,6 @@
 import { backendClient } from '@/api/backendClient';
 import { seedStudentProfiles, studentScenarioByName } from '@/data/seed/studentProfiles';
+import { appParams } from '@/lib/app-params';
 import { normalizeStudentIdentifier } from '@/lib/studentSession';
 import { buildEscalationPayload, buildParentMessage } from '@/lib/wellbeingContent';
 import {
@@ -13,10 +14,13 @@ import {
   deriveTrendFromScores,
   getFeatureById,
   getFeatureByLabel,
+  getFeatureRiskContribution,
+  getSignalDirection,
   hasCompletedOnboarding,
   MONITOR_THRESHOLD,
   monthlyQuestions,
   oneTimeQuestions,
+  scoreToSeverityFromRisk,
 } from '@/lib/rfModel';
 
 const FALLBACK_SOURCE = 'fallback';
@@ -26,6 +30,23 @@ const LOCAL_CHECKIN_STORAGE_KEY = 'mindbridge_local_student_checkins';
 const LOCAL_TEACHER_ACTION_STORAGE_KEY = 'mindbridge_local_teacher_actions';
 const LOCAL_COUNSELLOR_CASE_STORAGE_KEY = 'mindbridge_local_counsellor_cases';
 const LOCAL_PARENT_COMM_STORAGE_KEY = 'mindbridge_local_parent_communications';
+const INFERENCE_API_URL = 'http://localhost:8000/predict';
+const REMOTE_BACKEND_ENABLED = Boolean(appParams.appId && appParams.appId !== 'your_app_id');
+
+async function callInferenceAPI(features) {
+  try {
+    const response = await fetch(INFERENCE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(features),
+    });
+    if (!response.ok) throw new Error(`Inference API returned ${response.status}`);
+    return await response.json();
+  } catch (err) {
+    console.warn('Inference API unavailable, falling back to local scoring:', err.message);
+    return null;
+  }
+}
 
 function readLocalCollection(storageKey) {
   const storage = getStorage();
@@ -86,6 +107,12 @@ function inferObservationCategory(feature) {
   if (feature.category === 'school') return 'school';
   if (feature.category === 'self_image') return 'self_image';
   return 'general';
+}
+
+function normalizeInferenceFeatureName(featureName) {
+  if (featureName === 'talkfather') return 'grp_talk_father';
+  if (featureName === 'talkmother') return 'grp_talk_mother';
+  return featureName;
 }
 
 function normalizeBaselineSex(value) {
@@ -410,6 +437,7 @@ function normalizeCheckIn(checkIn, source = BACKEND_SOURCE) {
 let seedAttempted = false;
 
 async function ensureStudentProfilesSeeded() {
+  if (!REMOTE_BACKEND_ENABLED) return;
   if (seedAttempted) return;
   seedAttempted = true;
 
@@ -422,6 +450,13 @@ async function ensureStudentProfilesSeeded() {
 }
 
 export async function listStudents() {
+  if (!REMOTE_BACKEND_ENABLED) {
+    return mergeStudentsByIdentifier(
+      buildFallbackStudents(),
+      buildLocalDraftStudents(),
+    );
+  }
+
   try {
     await ensureStudentProfilesSeeded();
     const students = await backendClient.entities.StudentProfile.list('-created_at', 100);
@@ -439,6 +474,15 @@ export async function listStudents() {
 }
 
 export async function getStudentById(studentId) {
+  if (!REMOTE_BACKEND_ENABLED) {
+    const fallback = buildLocalDraftStudents().find((student) => student.id === studentId)
+      || buildFallbackStudents().find((student) => student.id === studentId);
+    if (fallback) return fallback;
+
+    const students = await listStudents();
+    return students.find((student) => student.id === studentId) || null;
+  }
+
   try {
     const student = normalizeStudentProfile(await backendClient.entities.StudentProfile.get(studentId), BACKEND_SOURCE);
     const localOverride = buildLocalDraftStudents().find((item) => (
@@ -498,17 +542,19 @@ async function findStoredStudentRecordByIdentifier(identifier) {
   const normalized = normalizeStudentIdentifier(identifier);
   if (!normalized) return null;
 
-  try {
-    await ensureStudentProfilesSeeded();
-    const remoteStudents = await backendClient.entities.StudentProfile.list('-created_at', 200);
-    const remoteMatch = remoteStudents.find((student) => (
-      normalizeStudentIdentifier(student.student_identifier || '') === normalized
-    ));
-    if (remoteMatch) {
-      return { student: remoteMatch, source: BACKEND_SOURCE };
+  if (REMOTE_BACKEND_ENABLED) {
+    try {
+      await ensureStudentProfilesSeeded();
+      const remoteStudents = await backendClient.entities.StudentProfile.list('-created_at', 200);
+      const remoteMatch = remoteStudents.find((student) => (
+        normalizeStudentIdentifier(student.student_identifier || '') === normalized
+      ));
+      if (remoteMatch) {
+        return { student: remoteMatch, source: BACKEND_SOURCE };
+      }
+    } catch (error) {
+      console.warn('Unable to query backend for student authentication lookup:', error);
     }
-  } catch (error) {
-    console.warn('Unable to query backend for student authentication lookup:', error);
   }
 
   const localMatch = readLocalDraftProfiles().find((student) => (
@@ -591,6 +637,13 @@ export async function authenticateStudentProfile({ identifier, passcode }) {
     next_follow_up_note: '',
   };
 
+  if (!REMOTE_BACKEND_ENABLED) {
+    return upsertLocalDraftProfile({
+      ...draftProfile,
+      id: `local_${normalized}`,
+    });
+  }
+
   try {
     const created = await backendClient.entities.StudentProfile.create(draftProfile);
     return normalizeStudentProfile(created, BACKEND_SOURCE);
@@ -624,6 +677,13 @@ export async function recordStudentConsent(studentId) {
     });
   }
 
+  if (!REMOTE_BACKEND_ENABLED) {
+    return upsertLocalDraftProfile({
+      ...student,
+      ...update,
+    });
+  }
+
   try {
     const updated = await backendClient.entities.StudentProfile.update(studentId, update);
     return normalizeStudentProfile(updated, BACKEND_SOURCE);
@@ -640,6 +700,7 @@ export async function listStudentCheckInsByStudentId(studentId) {
   if (!studentId) return [];
 
   const localCheckIns = listLocalStudentCheckIns(studentId);
+  if (!REMOTE_BACKEND_ENABLED) return localCheckIns;
 
   try {
     const checkIns = await backendClient.entities.StudentCheckIn.list('-created_at', 200);
@@ -660,6 +721,7 @@ export async function listTeacherActionsByStudentId(studentId) {
   if (!studentId) return [];
 
   const localActions = listLocalTeacherActions(studentId);
+  if (!REMOTE_BACKEND_ENABLED) return localActions;
 
   try {
     const actions = await backendClient.entities.TeacherAction.list('-created_at', 200);
@@ -718,6 +780,11 @@ export async function listCounsellorCases({ teacherEmail, allowAll = false } = {
       : cases.filter((record) => normalizeTeacherEmail(record.teacher_email) === normalizeTeacherEmail(teacherEmail))
   );
 
+  if (!REMOTE_BACKEND_ENABLED) {
+    return scopedCases(localCases)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
+  }
+
   try {
     const records = await backendClient.entities.CounsellorCase.list('-created_at', 200);
     return mergeUniqueBy([
@@ -739,6 +806,11 @@ export async function listParentCommunications({ teacherEmail, allowAll = false 
       ? records
       : records.filter((record) => normalizeTeacherEmail(record.teacher_email) === normalizeTeacherEmail(teacherEmail))
   );
+
+  if (!REMOTE_BACKEND_ENABLED) {
+    return scopedMessages(localMessages)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0));
+  }
 
   try {
     const records = await backendClient.entities.ParentCommunication.list('-created_at', 200);
@@ -784,11 +856,15 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
   const weekValue = week || new Date().toISOString().split('T')[0];
   let current = null;
 
-  try {
-    current = await backendClient.entities.StudentProfile.get(studentId);
-  } catch (error) {
-    console.warn('Unable to load current StudentProfile before submission:', error);
-    current = buildFallbackStudents().find((student) => student.id === studentId) || null;
+  if (REMOTE_BACKEND_ENABLED) {
+    try {
+      current = await backendClient.entities.StudentProfile.get(studentId);
+    } catch (error) {
+      console.warn('Unable to load current StudentProfile before submission:', error);
+      current = buildFallbackStudents().find((student) => student.id === studentId) || null;
+    }
+  } else {
+    current = await getStudentById(studentId);
   }
 
   if (current?.survey_status && current.survey_status !== 'open') {
@@ -818,13 +894,47 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     ...(nextSurveyType === 'monthly' ? submittedMonthly : {}),
   };
 
-  const computedScore = computeCheckInScore(weeklyAnswers, scoringContext);
+  const featureInputs = {
+    ...scoringContext,
+    ...submittedRecurringAnswers,
+    talkfather: scoringContext.grp_talk_father ?? scoringContext.talkfather ?? submittedRecurringAnswers.grp_talk_father ?? null,
+    talkmother: scoringContext.grp_talk_mother ?? scoringContext.talkmother ?? submittedRecurringAnswers.grp_talk_mother ?? null,
+  };
+  const inferenceResult = await callInferenceAPI(featureInputs);
+  const computedScore = inferenceResult
+    ? inferenceResult.risk_score
+    : computeCheckInScore(weeklyAnswers, scoringContext);
+  const modelRiskLevel = inferenceResult ? inferenceResult.pred_class : null;
+  const modelSHAPDrivers = inferenceResult ? (inferenceResult.shap_drivers || []) : [];
   const signalContext = {
     ...mergedMonthly,
     ...submittedRecurringAnswers,
   };
   const signals = deriveSignalsFromCheckInAnswers(signalContext);
-  const key_factors = buildKeyFactorsFromCheckInAnswers(signalContext);
+  let key_factors = buildKeyFactorsFromCheckInAnswers(signalContext);
+
+  if (modelSHAPDrivers.length > 0) {
+    const shapFactors = modelSHAPDrivers
+      .map((featureName) => {
+        const normalizedFeatureName = normalizeInferenceFeatureName(featureName);
+        const feature = getFeatureById(normalizedFeatureName);
+        if (!feature) return null;
+        const risk = getFeatureRiskContribution(
+          feature,
+          signalContext[normalizedFeatureName] ?? signalContext[featureName],
+        );
+        return {
+          feature: normalizedFeatureName,
+          factor: feature.label,
+          category: feature.category,
+          direction: getSignalDirection(feature),
+          severity: risk !== null ? scoreToSeverityFromRisk(risk) : 'medium',
+          source: 'shap',
+        };
+      })
+      .filter(Boolean);
+    if (shapFactors.length > 0) key_factors = shapFactors;
+  }
   const legacyFields = buildLegacyCheckInFields(weeklyAnswers);
   let persistedCheckIn = true;
   const localCheckInRecord = {
@@ -842,33 +952,37 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     created_at: new Date().toISOString(),
   };
 
-  try {
-    await backendClient.entities.StudentCheckIn.create({
-      student_id: studentId,
-      week: weekValue,
-      survey_type: nextSurveyType,
-      ...legacyFields,
-      responses: submittedRecurringAnswers,
-      baseline_responses: mergedBaseline,
-      monthly_responses: mergedMonthly,
-      top_factors: key_factors,
-      free_text: freeText,
-      computed_score: computedScore,
-    });
-  } catch (error) {
+  if (REMOTE_BACKEND_ENABLED) {
     try {
       await backendClient.entities.StudentCheckIn.create({
         student_id: studentId,
         week: weekValue,
         survey_type: nextSurveyType,
         ...legacyFields,
+        responses: submittedRecurringAnswers,
+        baseline_responses: mergedBaseline,
+        monthly_responses: mergedMonthly,
+        top_factors: key_factors,
         free_text: freeText,
         computed_score: computedScore,
       });
-    } catch (legacyError) {
-      persistedCheckIn = false;
-      console.warn('StudentCheckIn create failed; continuing with StudentProfile sync only:', legacyError);
+    } catch (error) {
+      try {
+        await backendClient.entities.StudentCheckIn.create({
+          student_id: studentId,
+          week: weekValue,
+          survey_type: nextSurveyType,
+          ...legacyFields,
+          free_text: freeText,
+          computed_score: computedScore,
+        });
+      } catch (legacyError) {
+        persistedCheckIn = false;
+        console.warn('StudentCheckIn create failed; continuing with StudentProfile sync only:', legacyError);
+      }
     }
+  } else {
+    persistedCheckIn = false;
   }
 
   if (!persistedCheckIn) {
@@ -880,7 +994,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     const snapshot = buildWeeklyScoreSnapshot(weeklyAnswers, weekValue, scoringContext);
     const existingScores = sortWeeklyScores(profile.weekly_scores || []).filter((entry) => entry.week !== weekValue);
     const weekly_scores = sortWeeklyScores([...existingScores, snapshot]);
-    const risk_level = deriveRiskLevel(computedScore);
+    const risk_level = modelRiskLevel || deriveRiskLevel(computedScore);
     const trend = deriveTrendFromScores(weekly_scores);
     const confidence = deriveConfidenceFromScores(weekly_scores, signals);
     const action_status = deriveNextActionStatus(profile.action_status, risk_level, computedScore);
@@ -987,12 +1101,12 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
           ? new Date().toISOString()
           : (current.monthly_completed_at || null),
         risk_score: computedScore,
-        risk_level: deriveRiskLevel(computedScore),
+        risk_level: modelRiskLevel || deriveRiskLevel(computedScore),
         trend: deriveTrendFromScores(weekly_scores),
         confidence: deriveConfidenceFromScores(weekly_scores, signals),
         key_factors,
         weekly_scores,
-        action_status: deriveNextActionStatus(current.action_status, deriveRiskLevel(computedScore), computedScore),
+        action_status: deriveNextActionStatus(current.action_status, modelRiskLevel || deriveRiskLevel(computedScore), computedScore),
       });
 
       return {
@@ -1173,6 +1287,20 @@ export async function logTeacherAction({
     created_at: new Date().toISOString(),
   };
 
+  if (!REMOTE_BACKEND_ENABLED) {
+    const localAction = appendLocalTeacherAction(localActionRecord);
+    if (currentStudent) {
+      const nextStatus = deriveTeacherActionStatus(currentStudent.action_status, actionType, completed);
+      upsertLocalDraftProfile({
+        ...currentStudent,
+        action_status: nextStatus,
+        next_follow_up_at: replaceFollowUp ? (followUpDueAt || null) : (followUpDueAt || currentStudent.next_follow_up_at || null),
+        next_follow_up_note: replaceFollowUp ? (notes || '') : (notes || currentStudent.next_follow_up_note || ''),
+      });
+    }
+    return localAction;
+  }
+
   try {
     action = await backendClient.entities.TeacherAction.create({
       student_id: studentId,
@@ -1247,6 +1375,10 @@ export async function deleteTeacherAction({
     return deleteLocalTeacherAction(actionId);
   }
 
+  if (!REMOTE_BACKEND_ENABLED) {
+    return deleteLocalTeacherAction(actionId);
+  }
+
   try {
     await backendClient.entities.TeacherAction.delete(actionId);
     return true;
@@ -1315,6 +1447,10 @@ export async function createParentCommunication({
     sent_at: status === 'sent' ? new Date().toISOString() : null,
   };
 
+  if (!REMOTE_BACKEND_ENABLED) {
+    return appendLocalParentCommunication(record);
+  }
+
   try {
     const created = await backendClient.entities.ParentCommunication.create({
       student_id: record.student_id,
@@ -1341,6 +1477,18 @@ export async function updateParentCommunicationStatus({
   const nextStatus = status === 'sent' ? 'sent' : status === 'ready_to_send' ? 'ready_to_send' : 'draft';
   const sentAt = nextStatus === 'sent' ? new Date().toISOString() : null;
 
+  if (!REMOTE_BACKEND_ENABLED) {
+    const existing = listLocalParentCommunications().find((record) => record.id === communicationId);
+    if (!existing) {
+      throw new Error(`Parent communication not found: ${communicationId}`);
+    }
+    return upsertLocalParentCommunication({
+      ...existing,
+      status: nextStatus,
+      sent_at: sentAt,
+    });
+  }
+
   try {
     const updated = await backendClient.entities.ParentCommunication.update(communicationId, {
       status: nextStatus,
@@ -1365,6 +1513,17 @@ export async function updateCounsellorCaseStatus({
   const nextStatus = ['pending_review', 'acknowledged', 'closed'].includes(status)
     ? status
     : 'pending_review';
+
+  if (!REMOTE_BACKEND_ENABLED) {
+    const existing = listLocalCounsellorCases().find((record) => record.id === caseId);
+    if (!existing) {
+      throw new Error(`Counsellor case not found: ${caseId}`);
+    }
+    return upsertLocalCounsellorCase({
+      ...existing,
+      status: nextStatus,
+    });
+  }
 
   try {
     const updated = await backendClient.entities.CounsellorCase.update(caseId, {
@@ -1421,7 +1580,9 @@ export async function createCounsellorCase({
 
   let counsellorCase = null;
 
-  try {
+  if (!REMOTE_BACKEND_ENABLED) {
+    counsellorCase = appendLocalCounsellorCase(caseRecord);
+  } else try {
     const created = await backendClient.entities.CounsellorCase.create({
       student_id: caseRecord.student_id,
       student_name: caseRecord.student_name,

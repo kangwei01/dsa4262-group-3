@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarClock, MessageSquareText, Trash2, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Info, MessageSquareText, Trash2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -180,8 +180,17 @@ export default function StudentDetail() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current score</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Predicted Risk Score</p>
+                    <div className="group relative">
+                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-popover border border-border shadow-md px-3 py-2 text-xs text-muted-foreground leading-relaxed hidden group-hover:block z-10">
+                        This score reflects relative risk based on student responses and model predictions. It is used to track trends over time and support decision-making, not as a diagnosis.
+                      </div>
+                    </div>
+                  </div>
                   <p className="text-3xl font-semibold text-foreground mt-2">{student.risk_score}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1 leading-snug">Relative risk · not a clinical measure</p>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Main signals</p>

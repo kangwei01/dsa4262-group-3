@@ -34,7 +34,10 @@ export default function Feedback() {
   }
 
   const answers = buildAnswers(location.state, latestCheckIn);
-  const currentSignals = deriveSignalsFromCheckInAnswers(answers);
+  const shapSignals = (latestCheckIn?.key_factors || []).filter((f) => f.source === 'shap');
+  const currentSignals = shapSignals.length > 0
+    ? shapSignals
+    : deriveSignalsFromCheckInAnswers(answers);
   const priorSignalSets = checkIns
     .slice(1)
     .map((checkIn) => {

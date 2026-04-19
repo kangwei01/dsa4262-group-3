@@ -37,6 +37,13 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 }
 
 const getAppParams = () => {
+	const envAppId = import.meta.env.VITE_APP_ID;
+	if (!envAppId || envAppId === 'your_app_id') {
+		storage.removeItem(`${STORAGE_PREFIX}_app_id`);
+		storage.removeItem(`${STORAGE_PREFIX}_access_token`);
+		storage.removeItem(`${STORAGE_PREFIX}_app_base_url`);
+		storage.removeItem(`${STORAGE_PREFIX}_functions_version`);
+	}
 	if (getAppParamValue("clear_access_token") === 'true') {
 		storage.removeItem('wellbeing_app_access_token');
 		storage.removeItem('token');

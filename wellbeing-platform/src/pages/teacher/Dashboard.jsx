@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarClock, Send, ShieldCheck, Users } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Info, Send, ShieldCheck, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -284,7 +284,7 @@ export default function Dashboard() {
               <thead>
                 <tr className="border-b border-border bg-secondary/30">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Student name</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Latest score</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Predicted Risk Score</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Support band</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Weekly trend sparkline</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">3-week monitor badge</th>
@@ -304,15 +304,23 @@ export default function Dashboard() {
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-base font-semibold ${
-                          student.risk_level === 'high'
-                            ? 'text-rose-700'
-                            : student.risk_level === 'medium'
-                              ? 'text-amber-700'
-                              : 'text-emerald-700'
-                        }`}>
-                          {student.risk_score}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className={`text-base font-semibold ${
+                            student.risk_level === 'high'
+                              ? 'text-rose-700'
+                              : student.risk_level === 'medium'
+                                ? 'text-amber-700'
+                                : 'text-emerald-700'
+                          }`}>
+                            {student.risk_score}
+                          </span>
+                          <div className="group relative">
+                            <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-lg bg-popover border border-border shadow-md px-3 py-2 text-xs text-muted-foreground leading-relaxed hidden group-hover:block z-10">
+                              Relative risk score. Not a clinical measure.
+                            </div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <RiskBadge level={student.risk_level} />

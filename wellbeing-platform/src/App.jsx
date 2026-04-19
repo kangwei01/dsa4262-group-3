@@ -52,6 +52,8 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+    // In local/demo mode, non-auth errors fall through to render the app unauthenticated
+    console.warn('[Demo mode] Auth error ignored, continuing without auth:', authError.type, authError.message);
   }
 
   return (

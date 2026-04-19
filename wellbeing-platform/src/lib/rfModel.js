@@ -1,3 +1,5 @@
+import RF_CONFIG from '../../../inference_api/rf_config.json';
+
 const featureDefinitions = [
   {
     feature: 'grp_aches',
@@ -29,7 +31,7 @@ const featureDefinitions = [
     category: 'physical',
     cadence: 'monthly',
     importance: 0.06676630767142021,
-    question: 'Over the past 4 weeks, how would you describe your overall health?',
+    question: 'Over the past month, how would you describe your overall health?',
     sourceCols: ['health'],
     aggregationMethod: 'raw',
     supportKey: 'general_health',
@@ -40,7 +42,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.05760702829951625,
-    question: 'Over the past 4 weeks, when you needed support, how supported have you felt by your family?',
+    question: 'Over the past month, when you needed support, how supported have you felt by your family?',
     sourceCols: ['famsup', 'famtalk'],
     isGroupedComposite: true,
     groupedFrom: ['Get emotional help from family', 'Talk about problems with family'],
@@ -64,7 +66,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.03761582386316818,
-    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it be for you to talk to your father about it?',
+    question: 'Over the past month, if something was really bothering you, how easy was it to talk to your father about it?',
     sourceCols: ['talkfather'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -145,7 +147,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.020023417541704263,
-    question: 'Over the past 4 weeks, if something was really bothering you, how easy would it be for you to talk to your mother about it?',
+    question: 'Over the past month, if something was really bothering you, how easy was it to talk to your mother about it?',
     sourceCols: ['talkmother'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -182,7 +184,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'monthly',
     importance: 0.018861629132989353,
-    question: 'Over the past 4 weeks, how accepted have you felt by other students?',
+    question: 'Over the past month, how accepted have you felt by other students?',
     sourceCols: ['studaccept'],
     aggregationMethod: 'raw',
     supportKey: 'school_belonging',
@@ -217,7 +219,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'monthly',
     importance: 0.017613688432021598,
-    question: 'Over the past 4 weeks, how have you felt about school?',
+    question: 'Over the past month, how have you felt about school?',
     sourceCols: ['likeschool'],
     aggregationMethod: 'raw',
     supportKey: 'school_belonging',
@@ -226,9 +228,9 @@ const featureDefinitions = [
     feature: 'grp_bfast',
     label: 'Breakfast routine',
     category: 'habits',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.016366567575604694,
-    question: 'Across school days and weekends, how regularly do you eat breakfast in a usual week?',
+    question: 'Over the past month, how regularly have you eaten breakfast on school days and weekends?',
     sourceCols: ['breakfastwd', 'breakfastwe'],
     isGroupedComposite: true,
     groupedFrom: ['Breakfast on weekdays', 'Breakfast on weekends'],
@@ -239,9 +241,9 @@ const featureDefinitions = [
     feature: 'grp_teacher',
     label: 'Teacher care and acceptance',
     category: 'school',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.016240873573690112,
-    question: 'My teachers care about me and accept me as I am.',
+    question: 'Over the past month, how much have your teachers cared about you and accepted you as you are?',
     sourceCols: ['teacheraccept', 'teachercare'],
     isGroupedComposite: true,
     groupedFrom: ['Teacher accepts me', 'Teacher cares about me'],
@@ -300,7 +302,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'monthly',
     importance: 0.012873520300571173,
-    question: 'Over the past 4 weeks, how kind and helpful have your classmates been?',
+    question: 'Over the past month, how kind and helpful have your classmates been?',
     sourceCols: ['studhelpful'],
     aggregationMethod: 'raw',
     supportKey: 'school_belonging',
@@ -331,10 +333,21 @@ const featureDefinitions = [
     feature: 'famdec',
     label: 'Voice in family decisions',
     category: 'family',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.011223759015154275,
-    question: 'My family is willing to help me make decisions.',
+    question: 'Over the past month, how willing has your family been to help you make decisions?',
     sourceCols: ['famdec'],
+    aggregationMethod: 'raw',
+    supportKey: 'family_support',
+  },
+  {
+    feature: 'famhelp',
+    label: 'Family willingness to help',
+    category: 'family',
+    cadence: 'monthly',
+    importance: 0.01498916209244288,
+    question: 'Over the past month, how willing has your family been to help you when you needed it?',
+    sourceCols: ['famhelp'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
   },
@@ -353,9 +366,9 @@ const featureDefinitions = [
     feature: 'thinkbody',
     label: 'Body image',
     category: 'self_image',
-    cadence: 'weekly',
+    cadence: 'monthly',
     importance: 0.01022792520429548,
-    question: 'Do you think your body is...?',
+    question: 'Over the past month, how have you felt about how your body looks?',
     sourceCols: ['thinkbody'],
     aggregationMethod: 'raw',
     supportKey: 'self_image',
@@ -363,19 +376,9 @@ const featureDefinitions = [
 ];
 
 const selectedFeatureImportances = {
-  grp_aches: 0.363368,
-  sleepdificulty: 0.229028,
-  health: 0.088985,
-  schoolpressure: 0.075036,
-  grp_fam_sup: 0.055058,
-  grp_talk_father: 0.047937,
-  emcsocmed8: 0.035994,
-  studaccept: 0.020524,
-  grp_been_bullied: 0.019712,
-  grp_talk_mother: 0.019633,
-  likeschool: 0.017041,
-  sex: 0.015609,
-  studhelpful: 0.012077,
+  ...(RF_CONFIG.importances || {}),
+  grp_talk_father: RF_CONFIG.importances?.talkfather,
+  grp_talk_mother: RF_CONFIG.importances?.talkmother,
 };
 
 export const categoryLabels = {
@@ -835,6 +838,15 @@ const featureResponseMeta = {
     useInScore: true,
     summaryBucket: 'social',
   },
+  famhelp: {
+    responseType: 'choice',
+    options: familyFriendSupportOptions,
+    min: 1,
+    max: 7,
+    riskDirection: 'lower',
+    useInScore: true,
+    summaryBucket: 'social',
+  },
   fmeal: {
     responseType: 'choice',
     options: familyMealsOptions,
@@ -855,8 +867,8 @@ const featureResponseMeta = {
   },
 };
 
-export const MONITOR_THRESHOLD = 47.54;
-export const FLAG_THRESHOLD = 58.07;
+export const MONITOR_THRESHOLD = RF_CONFIG.thresholds.monitor_75th;
+export const FLAG_THRESHOLD = RF_CONFIG.thresholds.flag_85th;
 export const DISTRESS_THRESHOLD = MONITOR_THRESHOLD;
 export const HIGH_DISTRESS_THRESHOLD = FLAG_THRESHOLD;
 
@@ -1019,7 +1031,7 @@ function scoreToSeverity(score) {
   return 'low';
 }
 
-function scoreToSeverityFromRisk(riskScore) {
+export function scoreToSeverityFromRisk(riskScore) {
   if (riskScore >= 0.82) return 'high';
   if (riskScore >= 0.64) return 'medium';
   return 'low';
@@ -1079,7 +1091,7 @@ export function getFeatureRiskContribution(featureOrId, rawValue) {
   return feature.riskDirection === 'higher' ? normalized : 1 - normalized;
 }
 
-function getSignalDirection(feature) {
+export function getSignalDirection(feature) {
   if (!feature) return 'watch';
   if (['grp_fam_sup', 'grp_friend', 'friendhelp', 'famdec', 'grp_online_contact', 'studaccept', 'studhelpful', 'grp_teacher', 'teachertrust'].includes(feature.feature)) {
     return 'declining';
@@ -1440,9 +1452,14 @@ const supportCategoryByFeature = {
   sleepdificulty: 'sleep',
   schoolpressure: 'school_stress',
   likeschool: 'school_stress',
+  grp_bfast: 'breakfast_habits',
   grp_been_bullied: 'bullying',
+  grp_teacher: 'teacher_support',
   studaccept: 'social_peers',
   studhelpful: 'social_peers',
+  famdec: 'family_support',
+  famhelp: 'family_support',
+  thinkbody: 'body_image',
   grp_fam_sup: 'family_support',
   grp_talk_father: 'family_support',
   grp_talk_mother: 'family_support',
@@ -1455,24 +1472,24 @@ export const supportResourceLibrary = {
     sourceLabel: 'MindSG — Sleeping Well (Teens)',
     tips: [
       {
-        header: 'Sleep has been harder lately',
-        body: "Your brain naturally releases melatonin later at night during your teen years, so feeling like a night owl isn't just laziness. Aim for 8–10 hours and try to keep a similar bedtime, even on weekends.",
-        link: 'https://www.mindline.sg/youth/article/how-to-sleep-better?type=interest',
+        header: 'Why your body fights sleep at night',
+        body: `Your brain actually releases the sleep hormone melatonin later at night during your teens — so feeling like a "night owl" isn't just laziness, it's biology. Aim for 8–10 hours and try to keep a consistent bedtime, even on weekends.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-teens',
       },
       {
-        header: 'Try the 20-minute reset',
-        body: "If you've been awake for more than 20 minutes, get out of bed and do something calm without screens. Going back only when you feel sleepy helps your brain reconnect bed with rest.",
-        link: 'https://www.mindline.sg/youth/article/how-to-sleep-better?type=interest',
+        header: 'The 20-minute rule',
+        body: "If you've been lying awake for more than 20 minutes, don't force it. Get up, do something calm in another room (reading, music — no screens), then go back when you feel sleepy. Lying awake in bed teaches your brain to associate your bed with being awake.",
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-teens',
       },
       {
-        header: 'Protect your wind-down time',
-        body: "Staying up late for 'me time' is really common after a packed day, but it often makes tomorrow feel harder. Try keeping the last 30 minutes before bed screen-free so your body can settle.",
-        link: 'https://www.mindline.sg/youth/article/sleep-problems-in-teenagers-causes-and-myths?type=interest',
+        header: '"Revenge bedtime procrastination"',
+        body: `Staying up late to get "me time" after a packed day is really common — it even has a name. But losing sleep to scroll or game means tomorrow feels harder. Try protecting 30 minutes before bed as your wind-down window, screens off.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-teens',
       },
       {
-        header: 'Sleep helps with learning too',
-        body: 'Your brain uses sleep to store what you learned during the day. Sleeping less than 8 hours before a big test usually hurts more than one last study sprint helps.',
-        link: 'https://www.mindline.sg/youth/article/how-much-sleep-do-you-need?type=interest',
+        header: 'Sleep and your grades',
+        body: 'Your brain consolidates what you learned during sleep — it\'s literally processing your lessons while you rest. Sleeping less than 8 hours before an exam hurts performance more than a last-minute study session helps it.',
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-teens',
       },
     ],
   },
@@ -1481,24 +1498,24 @@ export const supportResourceLibrary = {
     sourceLabel: 'MindSG — Coping with Stress (Teens)',
     tips: [
       {
-        header: 'School may feel heavier this week',
-        body: 'A little stress can help you focus, but constant stress feels different. If your body feels tense or restless, treat that as an early sign to pause and reset.',
-        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+        header: 'Not all stress is bad',
+        body: `A small amount of stress ("eustress") actually helps you focus and perform. The problem is when it's constant and overwhelming. Notice what your body tells you — tension, nervous habits — as an early warning sign to slow down.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/coping-with-stress-teens',
       },
       {
-        header: 'Break the week into smaller pieces',
-        body: 'When everything feels urgent, choose just one task and start there. A short 25-minute work block followed by a 5-minute break is often enough to get moving again.',
-        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+        header: 'Break it down',
+        body: 'When everything feels urgent, pick just one task and start there. Work in short focused bursts (try 25 minutes, then a 5-minute break). Finishing one small thing actually changes how the rest feels.',
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/coping-with-stress-teens',
       },
       {
-        header: 'A short pause can help',
-        body: 'You do not need a long meditation session to feel steadier. Even two minutes of noticing what you are feeling without judging it can help you slow the spiral.',
-        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+        header: 'Mindfulness in 2 minutes',
+        body: `You don't need to meditate for an hour. Just pause and notice: what are you feeling right now, without judging it? Practising this briefly — especially before a stressful class — can help you stay grounded rather than spiral.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/coping-with-stress-teens',
       },
       {
-        header: 'Say it early, not after it builds up',
-        body: "Stress usually feels bigger when you keep it to yourself. Even saying 'this week has been a lot' to a teacher, friend, or family member can make the next step feel clearer.",
-        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+        header: 'Talk before it builds',
+        body: `Stress compounds when kept inside. Telling a teacher, friend, or family member early — even just "I'm finding this week hard" — is often enough to feel less alone and start thinking more clearly.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/coping-with-stress-teens',
       },
     ],
   },
@@ -1508,18 +1525,18 @@ export const supportResourceLibrary = {
     tips: [
       {
         header: "You don't have to handle this alone",
-        body: "Whether it's in school or online, bullying is not something you should manage by yourself. Telling a trusted adult is not snitching — it's getting support.",
-        link: 'https://www.mindline.sg/youth/article/getting-help-for-bullying?type=interest',
+        body: `Whether it's in school or online, bullying is not something you should deal with by yourself. Telling a trusted adult — a teacher, parent, or school counsellor — is not "snitching." It's taking control.`,
+        link: 'https://parentingforwellness.hpb.gov.sg/Module-11/Topic-11A/Cyberbullying-and-ways-to-support-your-child-if-they-are-a-victim',
       },
       {
-        header: "Don't give online bullying more fuel",
-        body: 'Blocking, not replying, and saving screenshots can help you stay in control. If it keeps happening, report it to a trusted adult or the platform.',
-        link: 'https://www.healthhub.sg/programmes/parent-hub/teens/screen-use',
+        header: "Don't react online",
+        body: `Cyberbullies want a reaction — it's what keeps them going. Blocking, not responding, and saving evidence (screenshots with dates) puts you in control, not them. If it escalates, report it to a trusted adult or the platform.`,
+        link: 'https://parentingforwellness.hpb.gov.sg/Module-11/Topic-11A/Cyberbullying-and-ways-to-support-your-child-if-they-are-a-victim',
       },
       {
-        header: 'What happened is not your fault',
-        body: 'Being bullied can leave you feeling angry, embarrassed, or worthless. Those feelings are real, but the bullying does not define your worth.',
-        link: 'https://www.mindline.sg/youth/get-help',
+        header: 'Your feelings are valid',
+        body: `Being bullied can make you feel angry, embarrassed, or worthless — all of those feelings make sense. What's happening is not a reflection of your worth. Speaking to someone you trust about how you're feeling is a real step forward.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
       },
     ],
   },
@@ -1528,19 +1545,19 @@ export const supportResourceLibrary = {
     sourceLabel: 'MindSG / HealthHub',
     tips: [
       {
-        header: 'Feeling left out can hit hard',
-        body: 'A lot of people feel out of place sometimes, even when it looks like others have it all together. Reaching out to even one classmate or friend can matter more than it seems.',
-        link: 'https://www.mindline.sg/youth/article/understanding-friendship?type=interest',
+        header: 'Feeling left out is more common than you think',
+        body: `The feeling of not fitting in hits almost everyone at some point, even when it looks like others have it figured out. Reaching out to even one person — a classmate, a CCA friend — often matters more than it seems in the moment.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
       },
       {
-        header: 'Connection does not need perfect words',
-        body: "Checking in on someone else or sending a simple 'hey, are you okay?' can build connection for both of you. You do not need the perfect script to start.",
-        link: 'https://www.mindline.sg/youth/article/how-to-talk-to-your-friend-about-mental-health?type=interest',
+        header: 'Being a good friend helps you too',
+        body: `Supporting a classmate who's having a rough time — even just listening — builds connection for both of you. You don't need the perfect words, just a genuine "I noticed you seem off, you okay?"`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
       },
       {
-        header: 'You are allowed to say no',
-        body: "Doing things just to fit in often leaves you feeling worse after. Short responses like 'I'm not into that' get easier with practice and protect your own boundaries.",
-        link: 'https://www.healthhub.sg/well-being-and-lifestyle/mental-wellness/saying_no',
+        header: 'Peer pressure is real — so is your right to say no',
+        body: `Doing things just to fit in often leaves you feeling worse, not better. Knowing your own values and practising simple responses ("I'm not into that") gets easier with time and protects your self-respect.`,
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/mental-wellness/deal_with_peer_pressure_media',
       },
     ],
   },
@@ -1549,19 +1566,19 @@ export const supportResourceLibrary = {
     sourceLabel: 'MindSG — Seeking Support',
     tips: [
       {
-        header: 'Start small if talking feels awkward',
-        body: "You do not need to explain everything at once. Even saying 'I've been finding things a bit hard lately' can be enough to open the door.",
-        link: 'https://www.mindline.sg/youth/get-help',
+        header: 'Starting the conversation',
+        body: `It can feel awkward to talk to parents about how you're feeling, especially if you're not sure how they'll react. You don't have to have the full conversation at once. Even "I've been finding things a bit hard lately" opens a door.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
       },
       {
-        header: 'Tension at home does not always mean disconnection',
-        body: "Wanting more independence can create friction with parents, and that is common in your teen years. Small shared moments like a meal or short walk can still rebuild connection.",
-        link: 'https://www.mindline.sg/youth/article/caregiving-as-a-youth-a-guide-to-helping-others-and-yourself?type=interest',
+        header: 'Family tension is normal in your teens',
+        body: `As you seek independence, friction with parents is expected. It doesn't mean they don't care — it often means everyone's adjusting. Finding small shared moments (a meal, a walk) can rebuild connection without needing a big talk.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-others/my-family',
       },
       {
-        header: 'Another trusted adult counts too',
-        body: 'If talking to a parent feels impossible right now, another adult you trust can still help. Reaching out is a sign that you are taking care of yourself, not that something is wrong with you.',
-        link: 'https://www.mindline.sg/youth/article/how-and-where-to-get-help-for-mental-health-conditions?type=interest',
+        header: 'You can also talk to another trusted adult',
+        body: `If talking to parents feels impossible right now, a school counsellor, aunt, uncle, or another trusted adult can be just as valuable a source of support. Seeking help is not a sign that your family is broken — it's a sign you're taking care of yourself.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
       },
     ],
   },
@@ -1570,19 +1587,66 @@ export const supportResourceLibrary = {
     sourceLabel: 'MindSG',
     tips: [
       {
-        header: 'Your body can feel it too',
-        body: 'Headaches, stomachaches, and tiredness can sometimes show up when a lot has been going on. If those aches keep coming back, it can help to notice both what is happening in your body and what has been on your mind.',
-        link: 'https://www.mindline.sg/youth/article/coping-with-depression?type=interest',
+        header: 'Your body and mind are connected',
+        body: `Headaches, stomachaches, and fatigue are often how stress and difficult emotions show up physically in teens. If aches keep coming back without a clear cause, it's worth paying attention to how you're feeling emotionally too.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/understanding-depression-teens',
       },
       {
-        header: 'A short walk still counts',
-        body: "Even a 15-minute walk can help your body loosen up and improve your mood a little. You do not need a full workout for movement to make a difference.",
-        link: 'https://www.mindline.sg/youth/article/coping-with-depression?type=interest',
+        header: 'Move a little, feel a little better',
+        body: `Even a short walk releases endorphins — your body's natural mood boosters. You don't need a full workout. A 15-minute walk outside, especially in daylight, is one of the simplest things you can do for both your body and mood.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/preventing-self-harm-and-suicide-teens',
       },
       {
-        header: "Resting is not 'being lazy'",
-        body: 'If you are feeling run down or getting aches often, your body may be asking for a reset. It is completely okay to slow down and check in with an adult or doctor if it keeps happening.',
-        link: 'https://www.mindline.sg/youth/article/how-much-sleep-do-you-need?type=interest',
+        header: "Don't push through everything",
+        body: `Rest is not laziness. If your body is giving you signals — persistent tiredness, frequent aches — it might be asking you to slow down. Checking in with a school nurse or doctor is a completely reasonable and responsible thing to do.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-teens',
+      },
+    ],
+  },
+  breakfast_habits: {
+    label: 'Breakfast Habits',
+    sourceLabel: 'HealthHub Singapore',
+    tips: [
+      {
+        header: 'Breakfast helps your brain wake up too',
+        body: `Breakfast is not just about “not being hungry” — it helps you start the school morning with steadier energy. Even a simple option like wholemeal bread, cereal with milk, or a sandwich can be a solid start.`,
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/food-diet-and-nutrition/eat_to_win_school_canteen',
+      },
+      {
+        header: 'Skipping breakfast can affect mood and focus',
+        body: 'When you go through the morning without eating, it can be harder to concentrate and easier to feel irritable or flat. A small breakfast is still better than none.',
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/food-diet-and-nutrition/eat_to_win_school_canteen',
+      },
+      {
+        header: 'It does not need to be a big meal',
+        body: 'If you are not very hungry in the morning, keep it simple: milk, fruit, eggs, or a small wholegrain option still counts. The goal is consistency, not perfection.',
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/food-diet-and-nutrition/look-what-i-brought-for-recess',
+      },
+    ],
+  },
+  body_image: {
+    label: 'Body Image',
+    sourceLabel: 'HealthHub Singapore — Self-Esteem & Body Image',
+    tips: [
+      {
+        header: 'Feeling self-conscious during puberty is common',
+        body: 'A lot of teens become more aware of how they look during puberty. That does not mean anything is “wrong” with you — it is a common part of this stage of life.',
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/child-and-teens-health/help-your-child-cope-with-puberty-and-self-esteem',
+      },
+      {
+        header: "What you see isn't the full picture",
+        body: `Social media and advertising constantly show edited, filtered images — not real ones. Comparing how you look to what you see online is comparing your reality to someone else's highlight reel. Your body is doing more for you than you probably give it credit for.`,
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/child-and-teens-health/nurturing-self-esteem',
+      },
+      {
+        header: 'Self-esteem is built, not born',
+        body: `Feeling good about yourself is a skill you can practise — it's not something you either have or don't. Noticing things you do well (not just how you look), spending time on things you enjoy, and being kind to yourself in hard moments all build it over time.`,
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/mental-wellness/boosting-your-self-esteem',
+      },
+      {
+        header: 'Talk to someone you trust',
+        body: `Feeling unhappy about how your body looks — especially when it's persistent — is worth talking about, not pushing through alone. A school counsellor, parent, or trusted adult can help you work through it without judgement.`,
+        link: 'https://www.healthhub.sg/well-being-and-lifestyle/child-and-teens-health/help-your-child-cope-with-puberty-and-self-esteem',
       },
     ],
   },
@@ -1591,19 +1655,40 @@ export const supportResourceLibrary = {
     sourceLabel: 'MindSG',
     tips: [
       {
-        header: 'Scrolling for comfort can backfire',
-        body: 'Social media can feel soothing when you are upset, but it can also pull you deeper into comparison or overthinking. Try a different 10-minute reset like music, a short walk, or messaging one friend directly.',
-        link: 'https://www.mindline.sg/youth/article/coping-with-stress?type=mood',
+        header: 'Scrolling to feel better often backfires',
+        body: `Using social media when you're upset can feel soothing in the moment, but it often makes you feel worse — especially when you're comparing yourself to others. Try a different 10-minute reset: music, a short walk, or texting a friend directly.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/coping-with-stress-teens',
       },
       {
-        header: 'Screens can delay sleep',
-        body: "Blue light from screens can delay your brain's sleep signal even when you feel tired. A screen-free 30 minutes before bed can make falling asleep easier.",
-        link: 'https://www.mindline.sg/youth/article/how-to-sleep-better?type=interest',
+        header: 'Blue light and your sleep',
+        body: `Screens emit blue light that delays your brain's sleep hormone, making it harder to fall asleep even when you're tired. Try switching devices to night mode after 9pm, or doing a screen-free 30 minutes before bed.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/sleeping-well-teens',
       },
       {
-        header: 'Your feed is not real life',
-        body: "Most feeds are highlight reels, not the full picture. If a platform keeps making you feel worse about yourself, that is a sign to step back and use it more on your terms.",
-        link: 'https://www.mindline.sg/youth/article/coping-with-depression?type=interest',
+        header: 'Your feed is a highlight reel',
+        body: `Social media shows the best moments — rarely the hard ones. Comparing your ordinary day to someone else's best moment is always going to feel unfair. Noticing when a platform is making you feel worse about yourself is the first step to using it on your terms.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/caring-for-ourselves/understanding-depression-teens',
+      },
+    ],
+  },
+  teacher_support: {
+    label: 'Your Teachers',
+    sourceLabel: 'MindSG — Seeking Support',
+    tips: [
+      {
+        header: 'Teachers are often the first door',
+        body: `If you're struggling with something, your teacher can connect you to your school counsellor — you don't need to have everything figured out first. A simple "I've been having a tough time lately, could I talk to someone?" is enough to start.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
+      },
+      {
+        header: "It's okay to feel unsupported at school",
+        body: `Feeling like your teachers don't notice you or care about how you're doing is a real and valid feeling. It doesn't mean support isn't available — your school counsellor is there specifically for situations like this, and you can approach them directly.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
+      },
+      {
+        header: 'Connection matters more than you think',
+        body: `Research consistently shows that feeling supported by at least one adult at school makes a real difference to how you cope with pressure. If one teacher doesn't feel approachable, look for another — a CCA teacher, a form teacher, or any adult on campus you feel slightly more comfortable with.`,
+        link: 'https://www.healthhub.sg/programmes/mindsg/seeking-support',
       },
     ],
   },

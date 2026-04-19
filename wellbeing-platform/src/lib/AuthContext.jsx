@@ -17,6 +17,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAppState = async () => {
+    const isDemoMode = !appParams.appId || appParams.appId === 'your_app_id';
+    if (isDemoMode) {
+      setAuthError(null);
+      setAppPublicSettings(null);
+      setUser({ id: 'demo-student', name: 'Demo Student', role: 'student' });
+      setIsAuthenticated(true);
+      setIsLoadingAuth(false);
+      setIsLoadingPublicSettings(false);
+      return;
+    }
+
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);

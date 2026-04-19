@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+scikit-learn==1.7.1
+shap
+numpy==1.26.4
+pandas==2.2.3
