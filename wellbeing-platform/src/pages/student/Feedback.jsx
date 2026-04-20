@@ -5,8 +5,10 @@ import { useCurrentStudent, useLatestStudentCheckIn, useStudentCheckIns } from '
 import {
   buildSupportCardsFromSignals,
   deriveSignalsFromCheckInAnswers,
+  getFeatureRiskContribution,
   getSupportCategoryForFeature,
   HELPLINE_DIRECTORY,
+  scoreToSeverityFromRisk,
 } from '@/lib/rfModel';
 
 function buildAnswers(locationState, latestCheckIn) {
@@ -25,11 +27,21 @@ function normalizeFeatureCode(featureCode) {
 
 function buildSignalsFromUnfavourableFeatures(unfavourableFeatures = []) {
   return unfavourableFeatures
-    .map((item) => ({
-      feature: normalizeFeatureCode(item.feature_code || item.feature),
-      severity: 'medium',
-    }))
-    .filter((signal) => getSupportCategoryForFeature(signal.feature));
+    .map((item) => {
+      const feature = normalizeFeatureCode(item.feature_code || item.feature);
+      const risk = getFeatureRiskContribution(feature, item.feature_value);
+
+      return {
+        feature,
+        severity: risk !== null ? scoreToSeverityFromRisk(risk) : 'medium',
+        risk: risk ?? 0,
+      };
+    })
+    .filter((signal) => getSupportCategoryForFeature(signal.feature))
+    .sort((a, b) => {
+      if (b.risk !== a.risk) return b.risk - a.risk;
+      return a.feature.localeCompare(b.feature);
+    });
 }
 
 function getHelplineIcon(kind) {
