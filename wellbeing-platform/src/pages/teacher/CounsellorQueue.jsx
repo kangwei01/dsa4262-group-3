@@ -34,9 +34,13 @@ export default function CounsellorQueue() {
                   <p className="text-sm text-foreground leading-relaxed">{record.summary}</p>
                   <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4 space-y-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signals and trends</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Classification summary</p>
                       <p className="text-sm text-foreground mt-2">
-                        {(record.payload?.signals || []).map((signal) => `${signal.factor} (${signal.direction})`).join(' · ') || 'No signals captured.'}
+                        Support band: {record.payload?.overview?.support_band || 'unknown'}
+                        {' · '}
+                        Confidence: {record.payload?.overview?.model_confidence ? `${record.payload.overview.model_confidence}%` : 'Unavailable'}
+                        {' · '}
+                        Trend: {record.payload?.overview?.trend || 'stable'}
                       </p>
                     </div>
                     <div>

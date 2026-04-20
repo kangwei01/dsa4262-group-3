@@ -1,4 +1,5 @@
 import json
+import math
 import pickle
 import warnings
 from pathlib import Path
@@ -23,10 +24,34 @@ IMPUTER_STEP = MODEL.named_steps['imputer']
 MODEL_CLASSES = list(MODEL_STEP.classes_)
 HIGH_CLASS_INDEX = MODEL_CLASSES.index('high')
 EXPLAINER = shap.TreeExplainer(MODEL_STEP)
+FEATURE_LABELS = {
+    'grp_aches': 'Physical aches',
+    'sleepdificulty': 'Sleep difficulty',
+    'health': 'Self-rated health',
+    'schoolpressure': 'School pressure',
+    'grp_fam_sup': 'Family support',
+    'talkfather': 'Talk to father',
+    'talkmother': 'Talk to mother',
+    'emcsocmed8': 'Social media use',
+    'studaccept': 'Peer acceptance',
+    'grp_been_bullied': 'Bullying experience',
+    'likeschool': 'Liking school',
+    'famdec': 'Family decisions',
+    'famhelp': 'Family help',
+    'grp_teacher': 'Teacher support',
+    'thinkbody': 'Body image',
+    'grp_bfast': 'Breakfast habits',
+    'studhelpful': 'Classmates helpful',
+    'age': 'Age',
+    'sex': 'Sex',
+    'bodyheight': 'Height',
+    'bodyweight': 'Weight',
+}
 FEATURE_ALIASES = {
     'talkfather': ['talkfather', 'grp_talk_father'],
     'talkmother': ['talkmother', 'grp_talk_mother'],
 }
+EXCLUDED = {'age', 'bodyheight', 'bodyweight', 'sex'}
 
 
 def resolve_feature_value(payload, feature_name):
@@ -63,6 +88,70 @@ def get_high_class_shap_values(shap_values):
             return values[0, HIGH_CLASS_INDEX, :]
 
     raise ValueError(f'Unsupported SHAP output shape: {values.shape}')
+
+
+def feature_label(feature_code):
+    return FEATURE_LABELS.get(feature_code, feature_code)
+
+
+def serialize_feature_value(value):
+    if value is None:
+        return None
+    try:
+        if math.isnan(value):
+            return None
+    except TypeError:
+        pass
+    return float(value)
+
+
+def is_unfavourable(feature_code, value):
+    if value is None:
+        return False
+
+    try:
+        if math.isnan(value):
+            return False
+    except TypeError:
+        pass
+
+    if feature_code in EXCLUDED:
+        return False
+    if feature_code == 'grp_aches':
+        return value < 4
+    if feature_code == 'sleepdificulty':
+        return value < 4
+    if feature_code == 'health':
+        return value > 2
+    if feature_code == 'schoolpressure':
+        return value > 2
+    if feature_code == 'grp_fam_sup':
+        return value < 4
+    if feature_code in ('talkfather', 'grp_talk_father'):
+        return value > 2
+    if feature_code in ('talkmother', 'grp_talk_mother'):
+        return value > 2
+    if feature_code == 'emcsocmed8':
+        return value == 2
+    if feature_code == 'studaccept':
+        return value > 3
+    if feature_code == 'grp_been_bullied':
+        return value > 2
+    if feature_code == 'likeschool':
+        return value > 3
+    if feature_code == 'famdec':
+        return value < 4
+    if feature_code == 'famhelp':
+        return value < 4
+    if feature_code == 'grp_teacher':
+        return value > 3
+    if feature_code == 'thinkbody':
+        return value in (1, 5)
+    if feature_code == 'grp_bfast':
+        return value < 4
+    if feature_code == 'studhelpful':
+        return value > 3
+    return False
 
 
 app = FastAPI()
@@ -114,7 +203,25 @@ async def predict(payload: dict):
 
   positive_indices = np.where(shap_high > 0)[0]
   ranked_indices = positive_indices[np.argsort(shap_high[positive_indices])[::-1]]
-  shap_drivers = [FEATURES[index] for index in ranked_indices[:3]]
+  positive_shap_features = [
+    {
+      'feature_code': FEATURES[index],
+      'feature_label': feature_label(FEATURES[index]),
+      'feature_value': serialize_feature_value(ordered_values[FEATURES[index]]),
+      'shap_value': float(shap_high[index]),
+    }
+    for index in ranked_indices
+  ]
+  unfavourable_features = [
+    {
+      'feature_code': feature_name,
+      'feature_label': feature_label(feature_name),
+      'feature_value': serialize_feature_value(ordered_values[feature_name]),
+    }
+    for feature_name in FEATURES
+    if is_unfavourable(feature_name, ordered_values[feature_name])
+  ]
+  shap_drivers = [item['feature_code'] for item in positive_shap_features[:3]]
 
   return {
     'pred_class': predicted_class,
@@ -125,4 +232,6 @@ async def predict(payload: dict):
     'confidence': confidence,
     'risk_score': int(round((0.0 * prob_low + 0.5 * prob_medium + 1.0 * prob_high) * 100)),
     'shap_drivers': shap_drivers,
+    'positive_shap_features': positive_shap_features,
+    'unfavourable_features': unfavourable_features,
   }

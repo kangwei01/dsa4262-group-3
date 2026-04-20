@@ -17,6 +17,21 @@ function buildAnswers(locationState, latestCheckIn) {
   };
 }
 
+function normalizeFeatureCode(featureCode) {
+  if (featureCode === 'talkfather') return 'grp_talk_father';
+  if (featureCode === 'talkmother') return 'grp_talk_mother';
+  return featureCode;
+}
+
+function buildSignalsFromUnfavourableFeatures(unfavourableFeatures = []) {
+  return unfavourableFeatures
+    .map((item) => ({
+      feature: normalizeFeatureCode(item.feature_code || item.feature),
+      severity: 'medium',
+    }))
+    .filter((signal) => getSupportCategoryForFeature(signal.feature));
+}
+
 function getHelplineIcon(kind) {
   if (kind === 'phone') return Phone;
   if (kind === 'link') return Globe;
@@ -34,18 +49,29 @@ export default function Feedback() {
   }
 
   const answers = buildAnswers(location.state, latestCheckIn);
-  const shapSignals = (latestCheckIn?.key_factors || []).filter((f) => f.source === 'shap');
-  const currentSignals = shapSignals.length > 0
-    ? shapSignals
+  const persistedUnfavourableFeatures = Array.isArray(latestCheckIn?.unfavourable_features) && latestCheckIn.unfavourable_features.length > 0
+    ? latestCheckIn.unfavourable_features
+    : Array.isArray(student?.unfavourable_features) && student.unfavourable_features.length > 0
+      ? student.unfavourable_features
+      : [];
+  const persistedSignals = buildSignalsFromUnfavourableFeatures(persistedUnfavourableFeatures);
+  const currentSignals = persistedSignals.length > 0
+    ? persistedSignals
     : deriveSignalsFromCheckInAnswers(answers);
   const priorSignalSets = checkIns
     .slice(1)
     .map((checkIn) => {
+      const persistedSignals = Array.isArray(checkIn.unfavourable_features) && checkIn.unfavourable_features.length > 0
+        ? buildSignalsFromUnfavourableFeatures(checkIn.unfavourable_features)
+        : null;
       const signalAnswers = {
         ...(checkIn.monthly_responses || {}),
         ...(checkIn.answers || {}),
       };
-      return deriveSignalsFromCheckInAnswers(signalAnswers)
+      const signalList = persistedSignals && persistedSignals.length > 0
+        ? persistedSignals
+        : deriveSignalsFromCheckInAnswers(signalAnswers);
+      return signalList
         .map((signal) => getSupportCategoryForFeature(signal.feature))
         .filter(Boolean);
     });

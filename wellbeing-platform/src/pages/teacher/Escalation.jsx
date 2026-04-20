@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import RiskBadge from '@/components/shared/RiskBadge';
 import TrendIndicator from '@/components/shared/TrendIndicator';
 import { useCreateCounsellorCase, useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
-import { formatSignalLabel } from '@/lib/rfModel';
 import { useTeacherAccess } from '@/lib/TeacherAccessContext';
 
 export default function Escalation() {
@@ -30,9 +29,9 @@ export default function Escalation() {
       name: student.name,
       age: student.age,
       supportBand: student.risk_level,
+      confidence: student.confidence,
       currentScore: student.risk_score,
       trend: `${student.trend} across the last ${(student.weekly_scores || []).slice(-3).length || 0} recorded weeks`,
-      mainSignals: (student.key_factors || []).slice(0, 2).map((signal) => formatSignalLabel(signal.feature || signal.factor)),
       studentNote: latestCheckIn?.free_text || 'No student note added this week.',
       previousActions: teacherActions.slice(0, 4),
     };
@@ -87,9 +86,9 @@ export default function Escalation() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Auto-generated student summary</p>
               <p className="text-sm text-foreground mt-2">Support band: {summary.supportBand}</p>
+              <p className="text-sm text-foreground">Model confidence: {summary.confidence ? `${summary.confidence}%` : 'Unavailable'}</p>
               <p className="text-sm text-foreground">Current score: {summary.currentScore}</p>
               <p className="text-sm text-foreground">3-week trend summary: {summary.trend}</p>
-              <p className="text-sm text-foreground">Main signals: {summary.mainSignals.join(' · ') || 'No dominant signal yet'}</p>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Student note</p>

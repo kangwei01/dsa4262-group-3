@@ -11,7 +11,6 @@ import {
   formatSignalLabel,
   getRecommendedAction,
   getResponseLabel,
-  getSignalArrow,
   monthlyQuestions,
   weeklyQuestions,
 } from '@/lib/rfModel';
@@ -45,13 +44,6 @@ function buildTrendSummary(student) {
   if (last > first) return `Score has increased from ${first} to ${last} over the last ${recent.length} weeks.`;
   if (last < first) return `Score has decreased from ${first} to ${last} over the last ${recent.length} weeks.`;
   return `Score has stayed fairly steady around ${last} over the last ${recent.length} weeks.`;
-}
-
-function buildSignalSummary(student) {
-  return (student.key_factors || [])
-    .slice(0, 2)
-    .map((signal) => `${formatSignalLabel(signal.feature || signal.factor)} ${getSignalArrow(signal.direction)}`)
-    .join(' · ');
 }
 
 function buildScriptTopic(student) {
@@ -193,8 +185,10 @@ export default function StudentDetail() {
                   <p className="text-[11px] text-muted-foreground mt-1 leading-snug">Relative risk · not a clinical measure</p>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Main signals</p>
-                  <p className="text-sm font-medium text-foreground mt-2">{buildSignalSummary(student) || 'No dominant signal yet'}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model confidence</p>
+                  <p className="text-sm font-medium text-foreground mt-2">
+                    {student.confidence ? `${student.confidence}% confidence in the current support band` : 'Confidence unavailable'}
+                  </p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">{buildTrendSummary(student)}</p>

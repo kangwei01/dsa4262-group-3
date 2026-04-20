@@ -1373,9 +1373,9 @@ export function deriveConfidenceFromScores(weeklyScores = [], signals = []) {
 
 export function getRecommendedAction(student) {
   const streak = getConsecutiveDistressWeeks(student.weekly_scores || []);
-  const score = Number(student.risk_score || 0);
+  const riskLevel = student.risk_level || deriveRiskLevel(Number(student.risk_score || 0));
 
-  if (score >= FLAG_THRESHOLD && streak >= 3) {
+  if (riskLevel === 'high' && streak >= 3) {
     return {
       key: 'escalate',
       action: 'Escalate to Counsellor',
@@ -1384,12 +1384,12 @@ export function getRecommendedAction(student) {
     };
   }
 
-  if (score >= FLAG_THRESHOLD) {
+  if (riskLevel === 'high') {
     return {
       key: 'check_in',
       action: 'Check in Privately',
       urgency: 'soon',
-      description: `The latest score is in the flagged band (${FLAG_THRESHOLD.toFixed(2)}+). Start with a supportive private check-in this week.`,
+      description: 'The student is currently in the flagged band. Start with a supportive private check-in this week.',
     };
   }
 
@@ -1402,12 +1402,14 @@ export function getRecommendedAction(student) {
     };
   }
 
-  if (score >= MONITOR_THRESHOLD || (student.risk_level === 'medium' && student.trend === 'worsening')) {
+  if (riskLevel === 'medium') {
     return {
       key: 'monitor',
       action: 'Monitor for 2 Weeks',
       urgency: 'normal',
-      description: `The student is in the monitoring band (${MONITOR_THRESHOLD.toFixed(2)}+) or showing an upward trend. Set a review reminder.`,
+      description: student.trend === 'worsening'
+        ? 'The student is in the monitoring band and showing an upward trend. Set a review reminder.'
+        : 'The student is in the monitoring band and should be reviewed in 2 weeks.',
     };
   }
 

@@ -9,9 +9,7 @@ import TrendIndicator from '@/components/shared/TrendIndicator';
 import TrendSparkline from '@/components/teacher/TrendSparkline';
 import { useCloseStudentSurveys, useOpenStudentSurveys, useTeacherActivityFeed, useTeacherStudents } from '@/hooks/useWellbeingData';
 import {
-  FLAG_THRESHOLD,
   deriveTrendFromScores,
-  formatSignalLabel,
   getConsecutiveDistressWeeks,
   getRecommendedAction,
   hasThreeWeekDistressFlag,
@@ -45,7 +43,7 @@ function getActionRoute(student, actions) {
 }
 
 function getReviewUrgency(student) {
-  if (student.risk_score >= FLAG_THRESHOLD) return 0;
+  if (student.risk_level === 'high') return 0;
   if (student.risk_level === 'medium' && student.trend === 'worsening') return 1;
   if (student.risk_level === 'medium') return 2;
   return 3;
@@ -70,10 +68,8 @@ function isDueToday(dateString) {
     && dueDate.getDate() === today.getDate();
 }
 
-function buildMainSignal(student) {
-  const top = student.key_factors?.[0];
-  if (!top) return 'No dominant signal';
-  return `${formatSignalLabel(top.feature || top.factor)} ${top.direction === 'worsening' || top.direction === 'increasing' ? '↑' : top.direction === 'declining' || top.direction === 'harder' ? '↓' : '→'}`;
+function buildConfidenceLabel(student) {
+  return student.confidence ? `${student.confidence}% model confidence` : 'Model confidence unavailable';
 }
 
 function statusLabel(student, actions) {
@@ -105,7 +101,7 @@ export default function Dashboard() {
 
   const stats = useMemo(() => ({
     total: students.length,
-    flagged: students.filter((student) => student.risk_score >= FLAG_THRESHOLD).length,
+    flagged: students.filter((student) => student.risk_level === 'high').length,
     sustained: students.filter((student) => hasTwoWeekElevatedPattern(student.weekly_scores)).length,
     followUpsDue: students.filter((student) => isDueToday(student.next_follow_up_at)).length,
   }), [students]);
@@ -264,7 +260,7 @@ export default function Dashboard() {
                         <RiskBadge level={student.risk_level} />
                         <TrendIndicator trend={deriveTrendFromScores(student.weekly_scores)} />
                       </div>
-                      <p className="text-sm text-foreground">{buildMainSignal(student)}</p>
+                      <p className="text-sm text-foreground">{buildConfidenceLabel(student)}</p>
                     </div>
                     <Link to={`/teacher/student/${student.id}`}>
                       <Button size="sm" variant="outline">View student →</Button>
@@ -290,7 +286,7 @@ export default function Dashboard() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Support band</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Weekly trend sparkline</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">3-week monitor badge</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Main signal</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Model confidence</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Next step</th>
                 </tr>
@@ -342,7 +338,7 @@ export default function Dashboard() {
                           <span className="text-[11px] text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-foreground">{buildMainSignal(student)}</td>
+                      <td className="px-4 py-3 text-xs text-foreground">{student.confidence ? `${student.confidence}%` : '—'}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{statusLabel(student, actions)}</td>
                       <td className="px-4 py-3">
                         <Link to={getActionRoute(student, actions)}>

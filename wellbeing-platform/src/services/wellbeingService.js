@@ -17,7 +17,6 @@ import {
   getFeatureRiskContribution,
   getSignalDirection,
   hasCompletedOnboarding,
-  MONITOR_THRESHOLD,
   monthlyQuestions,
   oneTimeQuestions,
   scoreToSeverityFromRisk,
@@ -188,9 +187,10 @@ function normalizeStudentProfile(student, source = BACKEND_SOURCE) {
     source,
     age,
     risk_score: Number(student.risk_score || 0),
-    confidence: Number(student.confidence || 72),
+    confidence: Number(student.confidence ?? 72),
     student_identifier: normalizeStudentIdentifier(student.student_identifier || ''),
     key_factors: (student.key_factors || []).map(enrichKeyFactor),
+    unfavourable_features: Array.isArray(student.unfavourable_features) ? student.unfavourable_features : [],
     weekly_scores,
     baseline_responses,
     consent_completed: Boolean(student.consent_completed ?? student.onboarding_completed ?? hasCompletedOnboarding(baseline_responses)),
@@ -456,6 +456,7 @@ function normalizeCheckIn(checkIn, source = BACKEND_SOURCE) {
     },
     baseline_responses: checkIn.baseline_responses || null,
     monthly_responses,
+    unfavourable_features: Array.isArray(checkIn.unfavourable_features) ? checkIn.unfavourable_features : [],
   };
 }
 
@@ -791,7 +792,7 @@ export async function listFollowUpQueue({ teacherEmail, allowAll = false } = {})
       risk_level: student.risk_level,
       risk_score: student.risk_score,
       trend: student.trend,
-      main_signal: student.key_factors[0]?.factor || 'No dominant signal',
+      main_signal: student.confidence ? `${student.confidence}% model confidence` : 'Model confidence unavailable',
       overdue: Date.parse(student.next_follow_up_at) <= Date.now(),
     }))
     .sort((a, b) => Date.parse(a.due_at || 0) - Date.parse(b.due_at || 0));
@@ -851,11 +852,11 @@ export async function listParentCommunications({ teacherEmail, allowAll = false 
   }
 }
 
-function deriveNextActionStatus(currentStatus, nextRiskLevel, computedScore) {
+function deriveNextActionStatus(currentStatus, nextRiskLevel) {
   if (currentStatus === 'referred') return 'referred';
   if (currentStatus === 'check_in_scheduled') return 'check_in_scheduled';
   if (currentStatus === 'check_in_completed' && nextRiskLevel === 'low') return 'check_in_completed';
-  if (computedScore >= MONITOR_THRESHOLD) return 'monitoring';
+  if (nextRiskLevel === 'high' || nextRiskLevel === 'medium') return 'monitoring';
   return 'none';
 }
 
@@ -931,7 +932,9 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     ? inferenceResult.risk_score
     : computeCheckInScore(weeklyAnswers, scoringContext);
   const modelRiskLevel = inferenceResult ? inferenceResult.pred_class : null;
-  const modelSHAPDrivers = inferenceResult ? (inferenceResult.shap_drivers || []) : [];
+  const modelConfidence = inferenceResult ? Math.round((inferenceResult.confidence || 0) * 100) : null;
+  const modelPositiveShapFeatures = inferenceResult ? (inferenceResult.positive_shap_features || []) : [];
+  const modelUnfavourableFeatures = inferenceResult ? (inferenceResult.unfavourable_features || []) : [];
   const signalContext = {
     ...mergedMonthly,
     ...submittedRecurringAnswers,
@@ -939,19 +942,20 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
   const signals = deriveSignalsFromCheckInAnswers(signalContext);
   let key_factors = buildKeyFactorsFromCheckInAnswers(signalContext);
 
-  if (modelSHAPDrivers.length > 0) {
-    const shapFactors = modelSHAPDrivers
-      .map((featureName) => {
-        const normalizedFeatureName = normalizeInferenceFeatureName(featureName);
+  if (modelPositiveShapFeatures.length > 0) {
+    const shapFactors = modelPositiveShapFeatures
+      .slice(0, 3)
+      .map((item) => {
+        const normalizedFeatureName = normalizeInferenceFeatureName(item.feature_code);
         const feature = getFeatureById(normalizedFeatureName);
         if (!feature) return null;
         const risk = getFeatureRiskContribution(
           feature,
-          signalContext[normalizedFeatureName] ?? signalContext[featureName],
+          signalContext[normalizedFeatureName] ?? signalContext[item.feature_code],
         );
         return {
           feature: normalizedFeatureName,
-          factor: feature.label,
+          factor: item.feature_label || feature.label,
           category: feature.category,
           direction: getSignalDirection(feature),
           severity: risk !== null ? scoreToSeverityFromRisk(risk) : 'medium',
@@ -960,34 +964,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
       })
       .filter(Boolean);
 
-    const HIGH_STAKES_FEATURES = [
-      'grp_been_bullied',
-      'sleepdificulty',
-      'schoolpressure',
-      'grp_fam_sup',
-      'grp_aches',
-    ];
-    const shapFeatureSet = new Set(shapFactors.map((f) => f.feature));
-    const urgentFactors = HIGH_STAKES_FEATURES
-      .filter((featureId) => !shapFeatureSet.has(featureId))
-      .map((featureId) => {
-        const feature = getFeatureById(featureId);
-        if (!feature) return null;
-        const risk = getFeatureRiskContribution(feature, signalContext[featureId]);
-        if (risk === null || risk < 0.75) return null;
-        return {
-          feature: featureId,
-          factor: feature.label,
-          category: feature.category,
-          direction: getSignalDirection(feature),
-          severity: scoreToSeverityFromRisk(risk),
-          source: 'safety_flag',
-        };
-      })
-      .filter(Boolean);
-
-    const merged = [...urgentFactors, ...shapFactors].slice(0, 3);
-    if (merged.length > 0) key_factors = merged;
+    if (shapFactors.length > 0) key_factors = shapFactors;
   }
   const legacyFields = buildLegacyCheckInFields(weeklyAnswers);
   let persistedCheckIn = true;
@@ -1001,6 +978,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     baseline_responses: mergedBaseline,
     monthly_responses: mergedMonthly,
     top_factors: key_factors,
+    unfavourable_features: modelUnfavourableFeatures,
     free_text: freeText,
     computed_score: computedScore,
     created_at: new Date().toISOString(),
@@ -1053,8 +1031,8 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     const weekly_scores = sortWeeklyScores([...existingScores, snapshot]);
     const risk_level = modelRiskLevel || deriveRiskLevel(computedScore);
     const trend = deriveTrendFromScores(weekly_scores);
-    const confidence = deriveConfidenceFromScores(weekly_scores, signals);
-    const action_status = deriveNextActionStatus(profile.action_status, risk_level, computedScore);
+    const confidence = modelConfidence ?? deriveConfidenceFromScores(weekly_scores, signals);
+    const action_status = deriveNextActionStatus(profile.action_status, risk_level);
     const onboarding_completed = hasCompletedOnboarding(mergedBaseline);
     const onboarding_completed_at = onboarding_completed
       ? (profile.onboarding_completed_at || new Date().toISOString())
@@ -1083,6 +1061,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
       trend,
       confidence,
       key_factors,
+      unfavourable_features: modelUnfavourableFeatures,
       weekly_scores,
       action_status,
       next_follow_up_at: profile.next_follow_up_at || null,
@@ -1113,6 +1092,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
         trend,
         confidence,
         key_factors,
+        unfavourable_features: modelUnfavourableFeatures,
         weekly_scores,
         action_status,
         survey_status: 'closed',
@@ -1141,6 +1121,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
         trend,
         confidence,
         key_factors,
+        unfavourable_features: modelUnfavourableFeatures,
         weekly_scores,
         action_status,
       }, BACKEND_SOURCE),
@@ -1169,10 +1150,11 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
         risk_score: computedScore,
         risk_level: modelRiskLevel || deriveRiskLevel(computedScore),
         trend: deriveTrendFromScores(weekly_scores),
-        confidence: deriveConfidenceFromScores(weekly_scores, signals),
+        confidence: modelConfidence ?? deriveConfidenceFromScores(weekly_scores, signals),
         key_factors,
+        unfavourable_features: modelUnfavourableFeatures,
         weekly_scores,
-        action_status: deriveNextActionStatus(current.action_status, modelRiskLevel || deriveRiskLevel(computedScore), computedScore),
+        action_status: deriveNextActionStatus(current.action_status, modelRiskLevel || deriveRiskLevel(computedScore)),
       });
 
       return {
@@ -1631,7 +1613,7 @@ export async function createCounsellorCase({
     teacher_actions: actions,
   };
   payload.student_note = latestCheckIn?.free_text || '';
-  const summary = `${student.name} is being referred for counsellor review. Current score ${student.risk_score}/100, support band ${student.risk_level}, main signals ${student.key_factors.slice(0, 2).map((item) => item.factor).join(' + ') || 'not yet clear'}.`;
+  const summary = `${student.name} is being referred for counsellor review. Current score ${student.risk_score}/100, support band ${student.risk_level}, model confidence ${student.confidence ? `${student.confidence}%` : 'unavailable'}.`;
   const caseRecord = {
     id: `case_${studentId}_${Date.now()}`,
     student_id: studentId,
