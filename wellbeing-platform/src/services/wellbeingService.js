@@ -407,7 +407,8 @@ function upsertLocalParentCommunication(record) {
 function listLocalStudentCheckIns(studentId) {
   return readLocalCollection(LOCAL_CHECKIN_STORAGE_KEY)
     .filter((checkIn) => checkIn.student_id === studentId)
-    .map((checkIn) => normalizeCheckIn(checkIn, FALLBACK_SOURCE));
+    .map((checkIn) => normalizeCheckIn(checkIn, FALLBACK_SOURCE))
+    .sort((a, b) => Date.parse(b.created_at || b.week || 0) - Date.parse(a.created_at || a.week || 0));
 }
 
 function appendLocalStudentCheckIn(checkIn) {
@@ -1044,7 +1045,10 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
 
   try {
     const profile = current || await backendClient.entities.StudentProfile.get(studentId);
-    const snapshot = buildWeeklyScoreSnapshot(weeklyAnswers, weekValue, scoringContext);
+    const snapshot = {
+      ...buildWeeklyScoreSnapshot(weeklyAnswers, weekValue, scoringContext),
+      score: computedScore,
+    };
     const existingScores = sortWeeklyScores(profile.weekly_scores || []).filter((entry) => entry.week !== weekValue);
     const weekly_scores = sortWeeklyScores([...existingScores, snapshot]);
     const risk_level = modelRiskLevel || deriveRiskLevel(computedScore);
@@ -1144,7 +1148,10 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
   } catch (error) {
     console.warn('Check-in saved but StudentProfile sync failed:', error);
     if (current && (current.source === FALLBACK_SOURCE || String(studentId).startsWith('local_'))) {
-      const snapshot = buildWeeklyScoreSnapshot(weeklyAnswers, weekValue, scoringContext);
+      const snapshot = {
+        ...buildWeeklyScoreSnapshot(weeklyAnswers, weekValue, scoringContext),
+        score: computedScore,
+      };
       const existingScores = sortWeeklyScores(current.weekly_scores || []).filter((entry) => entry.week !== weekValue);
       const weekly_scores = sortWeeklyScores([...existingScores, snapshot]);
       const computedFallbackStudent = upsertLocalDraftProfile({

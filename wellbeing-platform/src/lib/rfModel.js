@@ -241,7 +241,7 @@ const featureDefinitions = [
     category: 'habits',
     cadence: 'monthly',
     importance: 0.016366567575604694,
-    question: 'Over the past month, how regularly have you eaten breakfast on school days and weekends?',
+    question: 'Over the past month, on how many days in a usual week did you eat breakfast on school days and weekends?',
     sourceCols: ['breakfastwd', 'breakfastwe'],
     isGroupedComposite: true,
     groupedFrom: ['Breakfast on weekdays', 'Breakfast on weekends'],
