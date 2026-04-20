@@ -118,15 +118,15 @@ def is_unfavourable(feature_code, value):
     if feature_code in EXCLUDED:
         return False
     if feature_code == 'grp_aches':
-        return value < 4
+        return value > 2
     if feature_code == 'sleepdificulty':
-        return value < 4
+        return value > 2
     if feature_code == 'health':
         return value > 2
     if feature_code == 'schoolpressure':
         return value > 2
     if feature_code == 'grp_fam_sup':
-        return value < 4
+        return value > 4
     if feature_code in ('talkfather', 'grp_talk_father'):
         return value > 2
     if feature_code in ('talkmother', 'grp_talk_mother'):
