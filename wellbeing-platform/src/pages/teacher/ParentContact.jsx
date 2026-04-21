@@ -20,9 +20,9 @@ export default function ParentContact() {
 
   useEffect(() => {
     if (student) {
-      setMessage(buildParentMessage(student));
+      setMessage(buildParentMessage(student, teacher));
     }
-  }, [student]);
+  }, [student, teacher]);
 
   if (isLoading) {
     return <div className="py-10 text-sm text-muted-foreground">Loading parent communication…</div>;

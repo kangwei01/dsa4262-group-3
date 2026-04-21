@@ -114,6 +114,14 @@ function normalizeInferenceFeatureName(featureName) {
   return featureName;
 }
 
+function getValidStoredNumber(value, min = null, max = null) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  if (min !== null && numeric < min) return '';
+  if (max !== null && numeric > max) return '';
+  return numeric;
+}
+
 function normalizeBaselineSex(value) {
   const normalized = String(value ?? '').trim().toLowerCase();
   if (normalized === 'male' || normalized === '1') return 1;
@@ -181,7 +189,7 @@ function normalizeStudentProfile(student, source = BACKEND_SOURCE) {
   const scenarioMeta = studentScenarioByName[student.name] || {};
   const weekly_scores = sortWeeklyScores(student.weekly_scores || []);
   const baseline_responses = buildBaselineResponses({
-    age: student.baseline_responses?.age ?? student.age ?? '',
+    age: student.baseline_responses?.age ?? getValidStoredNumber(student.age, 11, 18),
     sex: student.baseline_responses?.sex ?? '',
     fasholidays: student.baseline_responses?.fasholidays ?? '',
     bodyweight: student.baseline_responses?.bodyweight ?? '',
@@ -907,7 +915,7 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
   }
 
   const mergedBaseline = buildBaselineResponses({
-    age: submittedBaseline.age ?? current?.baseline_responses?.age ?? current?.age ?? '',
+    age: submittedBaseline.age ?? current?.baseline_responses?.age ?? getValidStoredNumber(current?.age, 11, 18),
     sex: submittedBaseline.sex ?? current?.baseline_responses?.sex ?? '',
     fasholidays: submittedBaseline.fasholidays ?? current?.baseline_responses?.fasholidays ?? '',
     bodyweight: submittedBaseline.bodyweight ?? current?.baseline_responses?.bodyweight ?? '',
@@ -1634,7 +1642,7 @@ export async function createCounsellorCase({
     status: 'pending_review',
     summary,
     payload,
-    parent_message: parentContact ? (parentMessage || buildParentMessage(student)) : '',
+    parent_message: parentContact ? (parentMessage || buildParentMessage(student, teacherEmail)) : '',
     created_by_role: createdByRole,
   };
 
@@ -1671,7 +1679,7 @@ export async function createCounsellorCase({
 
   let parentCommunication = null;
   if (parentContact) {
-    const message = parentMessage || buildParentMessage(student);
+    const message = parentMessage || buildParentMessage(student, teacherEmail);
     parentCommunication = await createParentCommunication({
       studentId,
       teacherEmail,

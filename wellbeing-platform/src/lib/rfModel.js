@@ -254,7 +254,7 @@ const featureDefinitions = [
     category: 'school',
     cadence: 'monthly',
     importance: 0.016240873573690112,
-    question: 'Over the past month, how much have your teachers cared about you and accepted you as you are?',
+    question: 'Over the past month, I feel that my teachers care about me and accept me as I am.',
     sourceCols: ['teacheraccept', 'teachercare'],
     isGroupedComposite: true,
     groupedFrom: ['Teacher accepts me', 'Teacher cares about me'],
@@ -346,7 +346,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.011223759015154275,
-    question: 'Over the past month, how willing has your family been to help you make decisions?',
+    question: 'Over the past month, my family has supported me in making decisions.',
     sourceCols: ['famdec'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -357,7 +357,7 @@ const featureDefinitions = [
     category: 'family',
     cadence: 'monthly',
     importance: 0.01498916209244288,
-    question: 'Over the past month, how willing has your family been to help you when you needed it?',
+    question: 'Over the past month, I feel that my family is there for me when I need help.',
     sourceCols: ['famhelp'],
     aggregationMethod: 'raw',
     supportKey: 'family_support',
@@ -1074,7 +1074,13 @@ function hasRfFeatureAnswers(answers = {}) {
 
 export function isQuestionAnswered(feature, value) {
   if (!feature) return false;
-  if (feature.responseType === 'number') return toNumber(value) !== null;
+  if (feature.responseType === 'number') {
+    const numeric = toNumber(value);
+    if (numeric === null) return false;
+    if (feature.min !== undefined && numeric < feature.min) return false;
+    if (feature.max !== undefined && numeric > feature.max) return false;
+    return true;
+  }
   return value !== undefined && value !== null && value !== '';
 }
 
