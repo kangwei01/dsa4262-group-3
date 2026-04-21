@@ -177,7 +177,7 @@ export default function WeeklyCheckIn() {
     setConsentAccepted(true);
     try {
       await recordConsent.mutateAsync(student.id);
-      window.setTimeout(goNext, 140);
+      setStep(0);
     } catch (error) {
       toast.error(error.message || 'We could not save your consent just now.');
       setConsentAccepted(false);
