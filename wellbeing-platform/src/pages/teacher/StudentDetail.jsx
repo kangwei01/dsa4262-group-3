@@ -9,8 +9,11 @@ import TrendSparkline from '@/components/teacher/TrendSparkline';
 import { useDeleteTeacherAction, useStudentCheckIns, useTeacherActions, useTeacherStudent } from '@/hooks/useWellbeingData';
 import {
   formatSignalLabel,
+  getFeatureById,
+  getFeatureRiskContribution,
   getRecommendedAction,
   getResponseLabel,
+  getSupportCategoryForFeature,
   monthlyQuestions,
   weeklyQuestions,
 } from '@/lib/rfModel';
@@ -46,10 +49,10 @@ function buildTrendSummary(student) {
   return `Score has stayed fairly steady around ${last} over the last ${recent.length} weeks.`;
 }
 
-function buildScriptTopic(student) {
-  const items = (student.key_factors || [])
+function buildScriptTopic(factors = []) {
+  const items = factors
     .slice(0, 2)
-    .map((signal) => formatSignalLabel(signal.feature || signal.factor).toLowerCase());
+    .map((signal) => (signal.label || formatSignalLabel(signal.feature || signal.factor)).toLowerCase());
   return items.length > 0 ? items.join(' and ') : 'things this week';
 }
 
@@ -100,6 +103,64 @@ function getDisplayedNextStep(student, recommendedAction, teacherActions) {
   return recommendedAction;
 }
 
+function normalizeFeatureCode(featureCode) {
+  if (featureCode === 'talkfather') return 'grp_talk_father';
+  if (featureCode === 'talkmother') return 'grp_talk_mother';
+  return featureCode;
+}
+
+function getDisplayedKeyFactors(student, latestCheckIn) {
+  const persistedUnfavourableFeatures = Array.isArray(latestCheckIn?.unfavourable_features) && latestCheckIn.unfavourable_features.length > 0
+    ? latestCheckIn.unfavourable_features
+    : Array.isArray(student?.unfavourable_features) && student.unfavourable_features.length > 0
+      ? student.unfavourable_features
+      : [];
+
+  if (persistedUnfavourableFeatures.length > 0) {
+    return persistedUnfavourableFeatures
+      .map((item, index) => {
+        const feature = normalizeFeatureCode(item.feature_code || item.feature);
+        const featureMeta = getFeatureById(feature);
+        const risk = getFeatureRiskContribution(feature, item.feature_value);
+
+        if (!featureMeta || !getSupportCategoryForFeature(feature)) return null;
+
+        return {
+          id: `${feature}-${index}`,
+          feature,
+          label: item.feature_label || featureMeta.label || formatSignalLabel(feature),
+          category: featureMeta.category || null,
+          risk: risk ?? 0,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (b.risk !== a.risk) return b.risk - a.risk;
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 3);
+  }
+
+  const persistedFactors = Array.isArray(student?.key_factors) ? student.key_factors : [];
+  const latestFactors = Array.isArray(latestCheckIn?.top_factors) ? latestCheckIn.top_factors : [];
+  const activeFactors = persistedFactors.length > 0 ? persistedFactors : latestFactors;
+
+  return activeFactors
+    .map((item, index) => {
+      const featureId = item?.feature || item?.feature_code || item?.factor;
+      const label = item?.factor || formatSignalLabel(featureId);
+      if (!label) return null;
+
+      return {
+        id: `${featureId || 'factor'}-${index}`,
+        label,
+        category: item?.category || null,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 export default function StudentDetail() {
   const { id } = useParams();
   const { teacher } = useTeacherAccess();
@@ -128,6 +189,8 @@ export default function StudentDetail() {
   const responseQuestions = getWeeklyResponseQuestions(latestCheckIn);
   const actionButtons = getActionButtons(student);
   const sexLabel = getResponseLabel('sex', student.baseline_responses?.sex);
+  const displayedKeyFactors = getDisplayedKeyFactors(student, latestCheckIn);
+  const scriptTopic = buildScriptTopic(displayedKeyFactors);
 
   const handleDeleteAction = async (action) => {
     const confirmed = window.confirm('Delete this log entry?');
@@ -161,43 +224,62 @@ export default function StudentDetail() {
       <Card className="border-border/60">
         <CardContent className="p-6 space-y-4">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Section 1 — Student overview</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm text-foreground">{student.grade && student.grade !== 'Unassigned' ? student.grade : 'Year —'}</span>
-                <span className="text-sm text-foreground">Age {student.age > 0 ? student.age : '—'}</span>
-                <span className="text-sm text-foreground">Sex {sexLabel}</span>
-                <RiskBadge level={student.risk_level} />
-                <TrendIndicator trend={student.trend} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Predicted Risk Score</p>
-                    <div className="group relative">
-                      <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-popover border border-border shadow-md px-3 py-2 text-xs text-muted-foreground leading-relaxed hidden group-hover:block z-10">
-                        This score reflects relative risk based on student responses and model predictions. It is used to track trends over time and support decision-making, not as a diagnosis.
-                      </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm text-foreground">{student.grade && student.grade !== 'Unassigned' ? student.grade : 'Year —'}</span>
+            <span className="text-sm text-foreground">Age {student.age > 0 ? student.age : '—'}</span>
+            <span className="text-sm text-foreground">Sex {sexLabel}</span>
+            <RiskBadge level={student.risk_level} />
+            <TrendIndicator trend={student.trend} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-6 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4 h-full">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Predicted Risk Score</p>
+                  <div className="group relative">
+                    <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-popover border border-border shadow-md px-3 py-2 text-xs text-muted-foreground leading-relaxed hidden group-hover:block z-10">
+                      This score reflects relative risk based on student responses and model predictions. It is used to track trends over time and support decision-making, not as a diagnosis.
                     </div>
                   </div>
-                  <p className="text-3xl font-semibold text-foreground mt-2">{student.risk_score}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1 leading-snug">Relative risk · not a clinical measure</p>
                 </div>
-                <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model confidence</p>
-                  <p className="text-sm font-medium text-foreground mt-2">
-                    {student.confidence ? `${student.confidence}% confidence in the current support band` : 'Confidence unavailable'}
-                  </p>
-                </div>
+                <p className="text-3xl font-semibold text-foreground mt-2">{student.risk_score}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">Relative risk · not a clinical measure</p>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{buildTrendSummary(student)}</p>
+              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4 h-full">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model confidence</p>
+                <p className="text-sm font-medium text-foreground mt-2">
+                  {student.confidence ? `${student.confidence}% confidence in the current support band` : 'Confidence unavailable'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4 h-full">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Driving factors</p>
+                {displayedKeyFactors.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {displayedKeyFactors.map((factor) => (
+                      <div key={factor.id} className="rounded-xl border border-border/50 bg-background/70 px-3 py-2">
+                        <p className="text-sm font-medium text-foreground">{factor.label}</p>
+                        {factor.category && (
+                          <p className="text-[11px] text-muted-foreground mt-1 capitalize">{factor.category}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    No driver details available for this submission yet.
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="rounded-2xl border border-border/60 bg-card p-4">
+            <div className="rounded-2xl border border-border/60 bg-card p-4 h-full flex flex-col">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Trend over last 4 weeks</p>
-              <TrendSparkline weeklyScores={student.weekly_scores.slice(-4)} />
+              <div className="flex-1 min-h-[180px]">
+                <TrendSparkline weeklyScores={student.weekly_scores.slice(-4)} className="w-full h-full" />
+              </div>
             </div>
           </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">{buildTrendSummary(student)}</p>
         </CardContent>
       </Card>
 
@@ -257,13 +339,13 @@ export default function StudentDetail() {
                 </Link>
               ))}
             </div>
-            <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <UserRound className="w-4 h-4 text-primary" />
-                <p className="text-sm font-medium text-foreground">Suggested draft for teacher review</p>
-              </div>
+              <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserRound className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">Suggested draft for teacher review</p>
+                </div>
               <p className="text-sm text-foreground leading-relaxed">
-                {`Hi ${student.name}, I just wanted to check in with you. I've noticed you might be finding things a bit tough lately — how have things been with ${buildScriptTopic(student)} recently?`}
+                {`Hi ${student.name}, I just wanted to check in with you. I've noticed you might be finding things a bit tough lately — how have things been with ${scriptTopic} recently?`}
               </p>
             </div>
             <div className="rounded-2xl border border-border/60 bg-secondary/20 p-4">
