@@ -142,6 +142,15 @@ function buildMonthlyResponses(source = {}) {
   );
 }
 
+function hasCompletedMonthlyResponses(student) {
+  if (!student?.monthly_completed_at) return false;
+
+  return monthlyQuestions.every((question) => {
+    const value = student?.monthly_responses?.[question.feature];
+    return value !== undefined && value !== null && value !== '';
+  });
+}
+
 function normalizeStoredAnswerKeys(answers = {}) {
   const normalized = { ...answers };
 
@@ -907,7 +916,10 @@ export async function submitStudentCheckIn({ studentId, answers, freeText, week,
     ...current?.baseline_responses,
     ...submittedBaseline,
   });
-  const nextSurveyType = surveyType || current?.survey_type || 'weekly';
+  const requestedSurveyType = surveyType || current?.survey_type || 'weekly';
+  const nextSurveyType = current && !hasCompletedMonthlyResponses(current)
+    ? 'monthly'
+    : requestedSurveyType;
   const mergedMonthly = buildMonthlyResponses({
     ...current?.monthly_responses,
     ...submittedMonthly,

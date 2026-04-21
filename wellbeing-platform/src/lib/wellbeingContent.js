@@ -1,11 +1,7 @@
 export function buildTeacherCheckInPrompts(student) {
-  const confidenceLine = student?.confidence
-    ? `The current model confidence is ${student.confidence}% for this support band.`
-    : 'The current support band should be treated as a prompt for a supportive check-in, not a diagnosis.';
-
   return [
     `Hi ${student?.name || 'there'}, I just wanted to check in with you. I've noticed you might be finding things a bit tough lately — how have things been feeling recently?`,
-    confidenceLine,
+    'This should be treated as a prompt for a supportive check-in, not a diagnosis.',
     "There's no pressure to explain everything at once. I just wanted to make some space in case this week has felt heavier than usual.",
     'What has felt hardest lately, and what has helped even a little?',
     'Let’s work out one small next step that could make the next two weeks feel a bit more manageable.',
@@ -28,16 +24,12 @@ export function buildFollowUpRecommendation(student) {
 }
 
 export function buildParentMessage(student) {
-  const confidenceLine = student?.confidence
-    ? `The current model confidence for this support band is ${student.confidence}%.`
-    : 'The current support band is only one input into our decision-making.';
-
   return [
     `Hello parent/guardian of ${student?.name || 'the student'},`,
     '',
     'I am reaching out with a supportive school update.',
     'We have noticed that things may have felt a bit heavier recently, and we want to make sure support is in place early.',
-    confidenceLine,
+    'The current support band is only one input into our decision-making.',
     'This is not an alarm message. We simply want to partner with you in checking how things have been going and whether any added support would help at home or in school.',
     '',
     'Please let me know if you would like to speak further.',

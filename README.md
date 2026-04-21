@@ -102,6 +102,9 @@ npm run dev
 
 The app runs at `http://localhost:5173`.
 
+For the student demo flow, use a student identifier in the `name@school.edu` format, for example `priyas@school.edu`.
+The student question page only appears after a teacher has opened a survey window, so turn on the weekly pulse or monthly check-in from the teacher dashboard before testing the student view.
+
 ---
 
 ## Running the Full Stack Locally
@@ -140,6 +143,10 @@ npm run dev
 ```
 
 Navigate to `http://localhost:5173`. The student check-in flow will call `localhost:8000/predict` on submission.
+
+When testing the prototype:
+- Use student identifiers in the `name@school.edu` format, for example `priyas@school.edu`.
+- The teacher must turn on either the weekly pulse or the monthly check-in before students can see and submit the survey questions.
 
 ---
 

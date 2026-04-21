@@ -36,6 +36,15 @@ function getQuestionValue(question, baselineResponses, weeklyAnswers, monthlyAns
   return weeklyAnswers[question.feature];
 }
 
+function hasCompletedMonthlyResponses(student) {
+  if (!student?.monthly_completed_at) return false;
+
+  return monthlyQuestions.every((question) => {
+    const value = student?.monthly_responses?.[question.feature];
+    return value !== undefined && value !== null && value !== '';
+  });
+}
+
 function buildSurveyScreens({ needsConsent, needsOnboarding, surveyType }) {
   return [
     ...(needsConsent ? [{ kind: 'welcome' }] : []),
@@ -107,13 +116,16 @@ export default function WeeklyCheckIn() {
   }, [studentIdentifier]);
 
   const surveyType = student?.survey_type === 'monthly' ? 'monthly' : 'weekly';
+  const effectiveSurveyType = student && !hasCompletedMonthlyResponses(student)
+    ? 'monthly'
+    : surveyType;
   const needsConsent = Boolean(student && !student.consent_completed);
   const needsOnboarding = student
     ? (!student.onboarding_completed || !hasCompletedOnboarding(getInitialBaselineResponses(student)))
     : false;
   const screens = useMemo(
-    () => buildSurveyScreens({ needsConsent, needsOnboarding, surveyType }),
-    [needsConsent, needsOnboarding, surveyType],
+    () => buildSurveyScreens({ needsConsent, needsOnboarding, surveyType: effectiveSurveyType }),
+    [effectiveSurveyType, needsConsent, needsOnboarding],
   );
   const screen = screens[step] || screens[0];
   const currentQuestion = screen?.kind === 'question' ? screen.question : null;
@@ -182,14 +194,14 @@ export default function WeeklyCheckIn() {
           monthlyAnswers,
         },
         freeText,
-        surveyType,
+        surveyType: effectiveSurveyType,
       });
 
       navigate('/feedback', {
         state: {
           answers: {
             ...weeklyAnswers,
-            ...(surveyType === 'monthly' ? monthlyAnswers : {}),
+            ...(effectiveSurveyType === 'monthly' ? monthlyAnswers : {}),
           },
           baselineResponses,
           monthlyResponses: monthlyAnswers,
@@ -372,7 +384,7 @@ export default function WeeklyCheckIn() {
                   )}
                   {currentQuestion.cadence === 'monthly' && (
                     <div className="flex items-center justify-between gap-3 mb-4 text-sm text-muted-foreground">
-                      <p>These questions don&apos;t change much week to week, so we&apos;ll only ask them once in a while. Just answer based on what&apos;s true for you right now.</p>
+                      <p>These questions don&apos;t change much week to week, so we&apos;ll only ask them once in a while. If this is your first full check-in, we&apos;ll collect them now so your results use your own answers rather than defaults.</p>
                       {progress && <span className="shrink-0">{progress.current} of {progress.total}</span>}
                     </div>
                   )}
