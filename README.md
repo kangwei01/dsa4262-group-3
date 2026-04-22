@@ -37,7 +37,7 @@ dsa4262-group-3/
 This notebook implements the full model-development workflow, from raw HBSC survey data to a deployable distress-risk classifier.
 
 **What it does end-to-end**
-1. Loads and cleans `HBSC 2018 data`
+1. Loads and cleans HBSC 2018 data
    - Reads `HBSC_data/HBSC2018OAed1.1.csv` (semicolon-separated).
    - Standardizes common missing-value tokens (e.g., "NA", "...", blank strings).
    - Cleans and type-coerces key structural fields (e.g., age/sex/country-related columns).
