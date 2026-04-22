@@ -12,7 +12,7 @@ git lfs install
 git lfs pull
 ```
 
-`rf_model.pkl` is tracked through Git LFS. Run `rebuilt.ipynb` only if you want to retrain the model and regenerate:
+`rf_model.pkl` is tracked through Git LFS. Run `full_analysis_pipeline.ipynb` only if you want to retrain the model and regenerate:
 - `rf_model.pkl` — trained sklearn pipeline
 - `rf_config.json` — feature list, importances, and score thresholds
 

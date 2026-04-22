@@ -173,7 +173,7 @@ When `VITE_APP_ID` is set to `your_app_id` (the default), the app runs in **demo
 
 ## Screenshots
 
-> Screenshots will be added here. See [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) for instructions.
+> See [`docs/Prototype Walkthrough.md`](docs/Prototype%20Walkthrough.md) for the screenshot-based walkthrough of the prototype.
 
 ---
 

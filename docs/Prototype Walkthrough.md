@@ -18,7 +18,7 @@
 
 ### Sign In
 
-![Student Sign In](docs/screenshots/Student_Sign_in_Page.png)
+![Student Sign In](screenshots/Student%20Sign%20in%20Page.png)
 
 Students sign in with their school email and a personal wellbeing passcode.
 
@@ -28,7 +28,7 @@ For the student demo flow, use a student identifier in the name@school.edu forma
 
 ### Onboarding & Consent
 
-![Onboarding and Consent](docs/screenshots/Onboarding_and_Consent.png)
+![Onboarding and Consent](screenshots/Onboarding%20and%20Consent.png)
 
 First-time students are shown what the check-in is for and how their answers will be used before proceeding.
 
@@ -36,7 +36,7 @@ First-time students are shown what the check-in is for and how their answers wil
 
 ### Weekly Check-In Questions
 
-![Weekly Question](docs/screenshots/Example_of_Weekly_Question.png)
+![Weekly Question](screenshots/Example%20of%20Weekly%20Question.png)
 
 Students answer 5 short questions about the past 7 days covering physical and emotional wellbeing.
 
@@ -44,7 +44,7 @@ Students answer 5 short questions about the past 7 days covering physical and em
 
 ### Monthly Questions
 
-![Monthly Question](docs/screenshots/Example_of_Monthly_Question.png)
+![Monthly Question](screenshots/Example%20of%20Monthly%20Question.png)
 
 Slower-changing baseline questions are asked once a month or on first check-in.
 
@@ -52,7 +52,7 @@ Slower-changing baseline questions are asked once a month or on first check-in.
 
 ### Free Text Note
 
-![Free Text](docs/screenshots/Free_Text.png)
+![Free Text](screenshots/Free%20Text.png)
 
 Students can optionally share anything else they want their teacher to know before submitting.
 
@@ -60,7 +60,7 @@ Students can optionally share anything else they want their teacher to know befo
 
 ### Post-Submission Screen
 
-![Student Support Page](docs/screenshots/Student_Support_Page.png)
+![Student Support Page](screenshots/Student%20Support%20Page.png)
 
 After submitting, students receive personalised wellbeing tips and links to local support resources.
 
@@ -70,7 +70,7 @@ After submitting, students receive personalised wellbeing tips and links to loca
 
 ### Sign In
 
-![Teacher Sign In](docs/screenshots/Teacher_Sign_in_Page.png)
+![Teacher Sign In](screenshots/Teacher%20Sign%20in%20Page.png)
 
 Teachers sign in via a separate screen using their school email and teacher passcode.
 
@@ -78,7 +78,7 @@ Teachers sign in via a separate screen using their school email and teacher pass
 
 ### Dashboard
 
-![Teacher Dashboard](docs/screenshots/Teacher_Dashboard.png)
+![Teacher Dashboard](screenshots/Teacher%20Dashboard.png)
 
 The dashboard surfaces students needing review, with risk scores, trend sparklines, support bands, and recommended next steps.
 
@@ -86,7 +86,7 @@ The dashboard surfaces students needing review, with risk scores, trend sparklin
 
 ### Student Detail Page
 
-![Student Detail Page](docs/screenshots/Student_Detail_Page.png)
+![Student Detail Page](screenshots/Student%20Detail%20Page.png)
 
 Each student has a detailed view showing their predicted risk score, model confidence, driving factors, weekly trend, and an action panel.
 
@@ -94,7 +94,7 @@ Each student has a detailed view showing their predicted risk score, model confi
 
 ### Action Panel — Check In / Monitor
 
-![Next Action Check In Monitor](docs/screenshots/Next_Action_Check_in_Monitor.png)
+![Next Action Check In Monitor](screenshots/Next%20Action%20Check%20in%20Monitor.png)
 
 When a student has been in the monitoring band for 3 consecutive weeks, the system recommends a private check-in.
 
@@ -102,7 +102,7 @@ When a student has been in the monitoring band for 3 consecutive weeks, the syst
 
 ### Action Panel — Continue Routine Support
 
-![Next Action Continue Routine Support](docs/screenshots/Next_Action_Continue_Routine_Support_Routine.png)
+![Next Action Continue Routine Support](screenshots/Next%20Action%20Continue%20Routine%20Support%20Routine.png)
 
 When a student is below the monitoring threshold, the system recommends continuing routine support with no immediate action required.
 
@@ -112,7 +112,7 @@ When a student is below the monitoring threshold, the system recommends continui
 
 ### Check In Privately
 
-![Check In and Outcome Log](docs/screenshots/Check_In_and_Outcome_Log_Page.png)
+![Check In and Outcome Log](screenshots/Check%20In%20and%20Outcome%20Log%20Page.png)
 
 A suggested check-in script is generated for the teacher. The teacher logs the outcome and sets a follow-up date after the conversation.
 
@@ -120,7 +120,7 @@ A suggested check-in script is generated for the teacher. The teacher logs the o
 
 ### Contact Parents
 
-![Contacting Parents](docs/screenshots/Contacting_Parents.png)
+![Contacting Parents](screenshots/Contacting%20Parents.png)
 
 A draft parent message is generated for the teacher to review, edit, and send.
 
@@ -128,7 +128,7 @@ A draft parent message is generated for the teacher to review, edit, and send.
 
 ### Escalate to Counsellor
 
-![Escalate to Counsellor](docs/screenshots/Escalation_to_counsellor.png)
+![Escalate to Counsellor](screenshots/Escalation%20to%20counsellor.png)
 
 The teacher reviews an auto-generated student summary and confirms before sharing it with the school counsellor.
 
