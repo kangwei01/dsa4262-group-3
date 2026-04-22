@@ -14,7 +14,7 @@ The system uses a trained Random Forest classifier (3-class: Routine / Monitor /
 
 ```text
 dsa4262-group-3/
-├── rebuilt.ipynb            # Canonical ML notebook — data processing, model training, export
+├── full_analysis_pipeline.ipynb            # Canonical ML notebook — data processing, model training, export
 ├── inference_api/           # FastAPI backend serving model predictions
 │   ├── app.py               # /predict and /health endpoints
 │   ├── rf_config.json       # Model features, importances, and score thresholds
@@ -26,13 +26,13 @@ dsa4262-group-3/
 │   │   ├── lib/rfModel.js   # Feature definitions, question bank, support card library
 │   │   └── services/        # Inference API integration and local fallback scoring
 │   └── package.json
-├── HBSC_data/               # Source data used in rebuilt.ipynb (not redistributed publicly)
+├── HBSC_data/               # Source data used in full_analysis_pipeline.ipynb (not redistributed publicly)
 └── README.md
 ```
 
 ---
 
-## ML Notebook — `rebuilt.ipynb`
+## ML Notebook — `full_analysis_pipeline.ipynb`
 
 Runs the full pipeline end-to-end:
 1. Loads and cleans HBSC 2018 data from `HBSC_data/`
@@ -41,7 +41,7 @@ Runs the full pipeline end-to-end:
 4. Evaluates model performance and computes SHAP feature importances
 5. Exports `rf_model.pkl` and `rf_config.json` into `inference_api/`
 
-**For day-to-day use, you do not need to run the notebook first.** The exported model file is already included in the repository through Git LFS. Run `rebuilt.ipynb` only if you want to retrain or regenerate the model artifacts.
+**For day-to-day use, you do not need to run the notebook first.** The exported model file is already included in the repository through Git LFS. Run `full_analysis_pipeline.ipynb` only if you want to retrain or regenerate the model artifacts.
 
 ---
 
