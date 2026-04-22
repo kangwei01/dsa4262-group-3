@@ -14,8 +14,8 @@ The system uses a trained Random Forest classifier (3-class: Routine / Monitor /
 
 ```text
 dsa4262-group-3/
-├── full_analysis_pipeline.ipynb      # Canonical ML notebook — data processing, model training, export
-├── inference_api/                   # FastAPI backend serving model predictions
+├── full_analysis_pipeline.ipynb    # End-to-end ML pipeline (data cleaning, feature engineering, model training, evaluation, export)
+├── inference_api/                  # FastAPI backend serving model predictions
 │   ├── app.py                      # /predict and /health endpoints
 │   ├── rf_config.json              # Model features, importances, and score thresholds
 │   ├── requirements.txt            # Python dependencies
@@ -31,6 +31,7 @@ dsa4262-group-3/
 │   ├── HBSC_2018_Codebook.pdf      # Official variable definitions and survey documentation
 │   ├── feature_question_mapping.xlsx   # Final selected features, question mapping, and collection frequency
 │   └── hbsc_variable_groupings.xlsx    # Variable grouping definitions and aggregation logic
+├── docs/                           # Walkthrough and screenshots
 └── README.md
 ```
 
