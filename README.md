@@ -103,10 +103,11 @@ Then run:
 npm run dev
 ```
 Note:
-1.The app runs at `http://localhost:5173`.
+1. The app runs at `http://localhost:5173`.
 
 2. For the student demo flow, use a student identifier in the `name@school.edu` format, for example `lebronj@school.edu`.
-The student question page only appears after a teacher has opened a survey window, so turn on the weekly pulse or monthly check-in from the teacher dashboard before testing the student view.
+   The student question page only appears after a teacher has opened a survey window, so turn on the weekly pulse or monthly check-in from the teacher
+   dashboard before testing the student view.
 
 ---
 
