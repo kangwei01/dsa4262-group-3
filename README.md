@@ -14,19 +14,19 @@ The system uses a trained Random Forest classifier (3-class: Routine / Monitor /
 
 ```text
 dsa4262-group-3/
-├── full_analysis_pipeline.ipynb            # Canonical ML notebook — data processing, model training, export
-├── inference_api/           # FastAPI backend serving model predictions
-│   ├── app.py               # /predict and /health endpoints
-│   ├── rf_config.json       # Model features, importances, and score thresholds
-│   ├── requirements.txt     # Python dependencies
-│   └── rf_model.pkl         # Trained model tracked via Git LFS
-├── wellbeing-platform/      # React/Vite frontend prototype
+├── full_analysis_pipeline.ipynb    # Canonical ML notebook — data processing, model training, export
+├── inference_api/                  # FastAPI backend serving model predictions
+│   ├── app.py                      # /predict and /health endpoints
+│   ├── rf_config.json              # Model features, importances, and score thresholds
+│   ├── requirements.txt            # Python dependencies
+│   └── rf_model.pkl                # Trained model tracked via Git LFS
+├── wellbeing-platform/             # React/Vite frontend prototype
 │   ├── src/
-│   │   ├── pages/           # Student check-in, feedback, and teacher dashboard views
-│   │   ├── lib/rfModel.js   # Feature definitions, question bank, support card library
-│   │   └── services/        # Inference API integration and local fallback scoring
+│   │   ├── pages/                  # Student check-in, feedback, and teacher dashboard views
+│   │   ├── lib/rfModel.js          # Feature definitions, question bank, support card library
+│   │   └── services/               # Inference API integration and local fallback scoring
 │   └── package.json
-├── HBSC_data/               # Source data used in full_analysis_pipeline.ipynb (not redistributed publicly)
+├── HBSC_data/                      # Source data used in full_analysis_pipeline.ipynb (not redistributed publicly)
 └── README.md
 ```
 
@@ -68,6 +68,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 uvicorn app:app --reload --port 8000
 ```
+If the `python` command is not recognised, use `python3` instead.
 
 Requires `rf_model.pkl` to be present locally. If you cloned the repository normally, run `git lfs pull` once after cloning to download the model file.
 **Python 3.11 is required for the inference API.** Newer versions such as Python 3.14 may fail when installing `scipy` / `scikit-learn` dependencies.
@@ -141,6 +142,7 @@ uvicorn app:app --reload --port 8000
 cd wellbeing-platform
 npm run dev
 ```
+If `python` does not work, use `python3`.
 
 Navigate to `http://localhost:5173`. The student check-in flow will call `localhost:8000/predict` on submission.
 
