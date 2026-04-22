@@ -34,12 +34,52 @@ dsa4262-group-3/
 
 ## ML Notebook — `full_analysis_pipeline.ipynb`
 
-Runs the full pipeline end-to-end:
-1. Loads and cleans HBSC 2018 data from `HBSC_data/`
-2. Engineers and groups features into 21 model inputs
-3. Trains a Random Forest classifier (3-class: Routine / Monitor / Flagged)
-4. Evaluates model performance and computes SHAP feature importances
-5. Exports `rf_model.pkl` and `rf_config.json` into `inference_api/`
+This notebook implements the full model-development workflow, from raw HBSC survey data to a deployable distress-risk classifier.
+**What it does end-to-end**
+1. Loads and cleans `HBSC 2018 data`
+   - Reads `HBSC_data/HBSC2018OAed1.1.csv` (semicolon-separated).
+   - Standardizes common missing-value tokens (e.g., "NA", "...", blank strings).
+   - Cleans and type-coerces key structural fields (e.g., age/sex/country-related columns).
+2. Builds the distress target
+   - Constructs a distress score from psychosomatic items (`feellow`, `irritable`, `nervous`, `lifesat`).
+   - Reverses scales where needed so direction is consistent.
+   - Produces a normalized continuous target (`distress_score_100`, higher = worse distress).
+   - Validates internal consistency with Cronbach’s alpha.
+3. Performs EDA (raw + target)
+   - Country-level, age-level, and feature-level distribution checks.
+   - Distress distribution/ranking views.
+   - Correlation-based signal checks for potential predictors.
+4. Runs workbook-driven feature engineering
+   - Reads feature definitions from `HBSC_data/hbsc_variable_groupings.xlsx`.
+   - Applies aggregation rules (e.g., grouped means, max/min logic, binary OR, breakfast sum-adjustment).
+   - Uses complete-case logic within grouped inputs.
+   - Produces:
+      - engineered feature matrix
+      - feature manifest/metadata
+   - Keeps non-omitted model features from the plan (56 engineered features before model selection).
+5. Creates 3-class classification target
+   - Converts continuous distress score into classes using quantile thresholds:
+     - low: below 75th percentile
+     - medium: 75th–85th percentile
+     - high: above 85th percentile
+   - In current notebook outputs, cutoffs are approximately 50.00 and 62.50.
+6. Trains and tunes Random Forest
+   - Pipeline: `SimpleImputer(strategy="median")` + `RandomForestClassifier`.
+   - Light grid search with stratified CV, optimizing recall of the high-risk class.
+   - Notebook output reports best RF hyperparameters and CV high-risk recall.
+7. Runs repeated out-of-sample evaluation
+   - Repeated train/test splits with stratification by age-band + sex (+ class-aware balancing).
+   - Computes pooled metrics: accuracy, macro/weighted F1, class-wise precision/recall/F1, kappa, confusion matrix.
+   - Ranks features by RF importance and compares:
+     - 80% cumulative-importance set
+     - 90% cumulative-importance set
+   - Selects final deployment set from 80% coverage (21 features).
+8. Builds deployment inference/explanation flow
+   - Fits final RF on the full labeled sample with selected features.
+   - Generates class probabilities and confidence fields.
+   - Uses SHAP TreeExplainer for per-student explanations (focused on high-risk contribution).
+   - Applies rule-based “unfavourable response” logic for recommendation triggers.
+   - Includes error analysis and a playground section for manual scenario simulation.
 
 **For day-to-day use, you do not need to run the notebook first.** The exported model file is already included in the repository through Git LFS. Run `full_analysis_pipeline.ipynb` only if you want to retrain or regenerate the model artifacts.
 
