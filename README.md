@@ -103,8 +103,33 @@ npm run dev
 
 The app runs at `http://localhost:5173`.
 
-For the student demo flow, use a student identifier in the `name@school.edu` format, for example `priyas@school.edu`.
+For the student demo flow, use a student identifier in the `name@school.edu` format, for example `lebronj@school.edu`.
 The student question page only appears after a teacher has opened a survey window, so turn on the weekly pulse or monthly check-in from the teacher dashboard before testing the student view.
+
+---
+
+## Demo Credentials
+
+Use the following seeded credentials for the prototype submission.
+
+### Staff Accounts
+
+| Role | Login ID | Passcode |
+|---|---|---|
+| Teacher | `wellbeing@school.edu` | `teacher1234` |
+| Counsellor | `counsellor@school.edu` | `counsellor1234` |
+
+### Student Demo Accounts
+
+| Student | Login ID | Passcode |
+|---|---|---|
+| Priya S. | `priyas@school.edu` | `priya1234` |
+| Ethan K. | `ethank@school.edu` | `ethan1234` |
+| Kobe Bryant | `kobeb@school.edu` | `kobe1234` |
+| LeBron James | `lebronj@school.edu` | `lebron1234` |
+| Zoe A. | `zoea@school.edu` | `zoe1234` |
+
+To test a student account, first sign in as the teacher and open either the weekly pulse or monthly check-in from the dashboard. Students will only see the survey after a teacher has opened it.
 
 ---
 
@@ -147,7 +172,7 @@ If `python` does not work, use `python3`.
 Navigate to `http://localhost:5173`. The student check-in flow will call `localhost:8000/predict` on submission.
 
 When testing the prototype:
-- Use student identifiers in the `name@school.edu` format, for example `priyas@school.edu`.
+- Use student identifiers in the `name@school.edu` format, for example `lebronj@school.edu`.
 - The teacher must turn on either the weekly pulse or the monthly check-in before students can see and submit the survey questions.
 
 ---

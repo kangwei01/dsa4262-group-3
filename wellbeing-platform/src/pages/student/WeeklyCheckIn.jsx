@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Heart, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Heart, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -238,7 +238,7 @@ export default function WeeklyCheckIn() {
               <Input
                 value={identifierInput}
                 onChange={(event) => setIdentifierInput(event.target.value)}
-                placeholder="e.g. priyas@school.edu"
+                placeholder="e.g. lebronj@school.edu"
                 className="h-12 text-base"
               />
               <Input
@@ -248,6 +248,16 @@ export default function WeeklyCheckIn() {
                 placeholder="Enter your passcode"
                 className="h-12 text-base"
               />
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Prototype credentials:
+                    {' '}
+                    <span className="font-semibold">lebronj@school.edu / lebron1234</span>
+                  </p>
+                </div>
+              </div>
               {accessError && (
                 <p className="text-xs text-rose-600">{accessError}</p>
               )}

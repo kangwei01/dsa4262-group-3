@@ -22,7 +22,7 @@
 
 Students sign in with their school email and a personal wellbeing passcode.
 
-For the student demo flow, use a student identifier in the name@school.edu format, for example priyas@school.edu. The student question page only appears after a teacher has opened a survey window, so turn on the weekly pulse or monthly check-in from the teacher dashboard before testing the student view.
+For the student demo flow, use a student identifier in the name@school.edu format, for example lebronj@school.edu. The student question page only appears after a teacher has opened a survey window, so turn on the weekly pulse or monthly check-in from the teacher dashboard before testing the student view.
 
 ---
 
@@ -136,10 +136,24 @@ The teacher reviews an auto-generated student summary and confirms before sharin
 
 ## Prototype Credentials
 
+### Staff Accounts
+
 | Role | Email | Passcode |
 |---|---|---|
 | Teacher | `wellbeing@school.edu` | `teacher1234` |
 | Counsellor | `counsellor@school.edu` | `counsellor1234` |
+
+### Student Demo Accounts
+
+| Student | Email | Passcode |
+|---|---|---|
+| Priya S. | `priyas@school.edu` | `priya1234` |
+| Ethan K. | `ethank@school.edu` | `ethan1234` |
+| Kobe Bryant | `kobeb@school.edu` | `kobe1234` |
+| LeBron James | `lebronj@school.edu` | `lebron1234` |
+| Zoe A. | `zoea@school.edu` | `zoe1234` |
+
+Before testing a student login, sign in as the teacher and open either the weekly pulse or monthly check-in from the dashboard so the student survey is available.
 
 ---
 
