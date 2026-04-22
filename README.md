@@ -68,10 +68,12 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 uvicorn app:app --reload --port 8000
 ```
-If the `python` command is not recognised, use `python3` instead.
+Note:
+1. If the `python` command is not recognised, use `python3` instead.
 
-Requires `rf_model.pkl` to be present locally. If you cloned the repository normally, run `git lfs pull` once after cloning to download the model file.
-**Python 3.11 is required for the inference API.** Newer versions such as Python 3.14 may fail when installing `scipy` / `scikit-learn` dependencies.
+2. Requires `rf_model.pkl` to be present locally. If you cloned the repository normally, run `git lfs pull` once after cloning to download the model file.
+
+3. **Python 3.11 is required for the inference API.** Newer versions such as Python 3.14 may fail when installing `scipy` / `scikit-learn` dependencies.
 
 ---
 
@@ -100,10 +102,10 @@ Then run:
 ```bash
 npm run dev
 ```
+Note:
+1.The app runs at `http://localhost:5173`.
 
-The app runs at `http://localhost:5173`.
-
-For the student demo flow, use a student identifier in the `name@school.edu` format, for example `lebronj@school.edu`.
+2. For the student demo flow, use a student identifier in the `name@school.edu` format, for example `lebronj@school.edu`.
 The student question page only appears after a teacher has opened a survey window, so turn on the weekly pulse or monthly check-in from the teacher dashboard before testing the student view.
 
 ---
@@ -167,11 +169,12 @@ uvicorn app:app --reload --port 8000
 cd wellbeing-platform
 npm run dev
 ```
-If `python` does not work, use `python3`.
+Note:
+1. If the `python` command is not recognised, use `python3` instead.
 
-Navigate to `http://localhost:5173`. The student check-in flow will call `localhost:8000/predict` on submission.
+2. Navigate to `http://localhost:5173`. The student check-in flow will call `localhost:8000/predict` on submission.
 
-When testing the prototype:
+3. When testing the prototype:
 - Use student identifiers in the `name@school.edu` format, for example `lebronj@school.edu`.
 - The teacher must turn on either the weekly pulse or the monthly check-in before students can see and submit the survey questions.
 
