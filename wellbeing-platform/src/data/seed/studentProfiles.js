@@ -144,7 +144,7 @@ export const seedStudentProfiles = [
     survey_opened_by: null,
     baseline_responses: {
       age: 14,
-      sex: 2,
+      sex: 1,
       fasholidays: 4,
       bodyweight: 49,
       bodyheight: 159,
